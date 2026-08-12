@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录 · 话费代充系统</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* 登录页专属微调 */
+    .auth-box { max-width: 420px; }
+    .login-mode-seg { display: flex; gap: 0; margin-bottom: 18px; border-radius: 12px;
+      overflow: hidden; border: 1.5px solid var(--border); }
+    .login-mode-seg label {
+      flex: 1; text-align: center; padding: 10px 0; cursor: pointer; font-size: 14px;
+      font-weight: 600; color: var(--text-2); background: #fff; transition: .15s;
+      position: relative; user-select: none;
+    }
+    .login-mode-seg label input { position: absolute; opacity: 0; }
+    .login-mode-seg label.checked {
+      background: var(--primary-light); color: var(--primary); }
+    .login-mode-seg label:first-child { border-right: 1.5px solid var(--border); }
+
+    /* 验证码输入行（输入框 + 发送按钮） */
+    .code-row { display: flex; gap: 10px; align-items: stretch; }
+    .code-row .field { flex: 1; margin-bottom: 0; }
+    .code-row .field input { height: 46px; }
+    .btn-send-code {
+      flex-shrink: 0; padding: 0 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      white-space: nowrap; min-width: 110px; transition: .15s;
+    }
+    .btn-send-code:not(:disabled) { background: var(--primary); color: #fff; border: none; cursor: pointer; }
+    .btn-send-code:not(:disabled):hover { background: var(--primary-dark); }
+    .btn-send-code:disabled { background: #f3f4f6; color: #9ca3af; border: 1px solid var(--border); cursor: not-allowed; }
+
+    /* 锁定提示 */
+    .lock-notice {
+      display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px;
+      font-size: 13px; line-height: 1.5;
+    }
+    .lock-notice.show { display: block; }
+    .lock-notice.warn { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .lock-notice b { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="inner">
+      <a href="index.html" class="logo"><span class="mark"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></span> 话费代充系统</a>
+      <div class="nav-actions" style="margin-left:auto">
+        <a href="index.html" class="btn btn-ghost btn-sm">返回首页</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="auth-wrap">
+    <!-- 左侧介绍 -->
+    <aside class="auth-aside">
+      <div>
+        <h2>欢迎使用<br/>话费代充系统</h2>
+        <p>企业批量充值、个人在线直充、代理商分销推广，一个账号全搞定。</p>
+      </div>
+      <div class="feat">
+        <div><span class="dot"></span> 个人 / 企业 / 代理商 <b>同一账号体系</b>登录</div>
+        <div><span class="dot"></span> 千级号码批量导入，订单状态全链路追踪</div>
+        <div><span class="dot"></span> 两级分销，佣金自动结算、随时提现</div>
+      </div>
+      <p style="font-size:12px;opacity:.7">© 2026 海拔科技 ehaiba.com</p>
+    </aside>
+
+    <!-- 右侧登录表单 -->
+    <main class="auth-main">
+      <div class="auth-box">
+        <h1>登录</h1>
+        <p class="lead">请选择登录方式并填写信息。</p>
+
+        <!-- 登录方式切换：密码登录 / 验证码登录 -->
+        <div class="login-mode-seg" id="loginModeSeg">
+          <label class="checked" data-mode="password">
+            <input type="radio" name="loginMode" value="password" checked />
+            密码登录
+          </label>
+          <label data-mode="smscode">
+            <input type="radio" name="loginMode" value="smscode" />
+            验证码登录
+          </label>
+        </div>
+
+        <!-- 账号锁定提示 -->
+        <div class="lock-notice warn" id="lockNotice"></div>
+
+        <!-- ===== 密码登录表单 ===== -->
+        <form id="pwdLoginForm" novalidate>
+          <div class="field" id="f-login-phone">
+            <label>手机号码</label>
+            <input type="tel" name="phone" placeholder="请输入11位手机号码" maxlength="11"
+              inputmode="numeric" autocomplete="username" />
+            <div class="err">请输入有效的11位手机号码</div>
+          </div>
+          <div class="field" id="f-login-pwd">
+            <label>密码</label>
+            <input type="password" name="password" placeholder="请输入登录密码" autocomplete="current-password" />
+            <div class="err">请输入密码</div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">登 录</button>
+        </form>
+
+        <!-- ===== 验证码登录表单 ===== -->
+        <form id="smsLoginForm" novalidate style="display:none">
+          <div class="field" id="f-sms-phone">
+            <label>手机号码</label>
+            <input type="tel" name="phone" placeholder="请输入11位手机号码" maxlength="11"
+              inputmode="numeric" autocomplete="tel" />
+            <div class="err">请输入有效的11位手机号码</div>
+          </div>
+          <div class="field" id="f-sms-code">
+            <label>验证码</label>
+            <div class="code-row">
+              <div style="flex:1">
+                <input type="text" name="code" placeholder="请输入6位验证码" maxlength="6"
+                  inputmode="numeric" class="code-input" style="width:100%;height:46px;padding:11px 13px;
+                  border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;
+                  box-sizing:border-box;-webkit-appearance:none;" />
+              </div>
+              <button type="button" class="btn-send-code" id="btnSendCode">获取验证码</button>
+            </div>
+            <div class="err" style="margin-top:5px">请输入6位验证码</div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">登 录</button>
+        </form>
+
+        <p class="auth-switch">还没有账号？<a href="register.html">立即注册</a></p>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var DB = App.DB;
+
+    function getParam(n) {
+      return new URLSearchParams(location.search).get(n);
+    }
+
+    /* ---------- 登录方式切换 ---------- */
+    var pwdForm = document.getElementById("pwdLoginForm");
+    var smsForm = document.getElementById("smsLoginForm");
+    var seg = document.getElementById("loginModeSeg");
+
+    seg.addEventListener("change", function (e) {
+      if (e.target.name !== "loginMode") return;
+      var mode = e.target.value;
+      Array.from(seg.querySelectorAll("label")).forEach(function (l) {
+        l.classList.toggle("checked", l.dataset.mode === mode);
+      });
+      if (mode === "password") {
+        pwdForm.style.display = "";
+        smsForm.style.display = "none";
+      } else {
+        pwdForm.style.display = "none";
+        smsForm.style.display = "";
+      }
+      clearAllErrors();
+      checkLockNotice();
+    });
+
+    /* ---------- 手机号实时校验（11位以1开头） ---------- */
+    function isValidPhone(v) { return /^1\d{10}$/.test(v); }
+
+    var loginPhoneInput = pwdForm.phone;
+    loginPhoneInput.addEventListener("input", function () {
+      var el = document.getElementById("f-login-phone");
+      el.classList.toggle("invalid", this.value.length > 0 && !isValidPhone(this.value));
+      checkLockNotice();
+    });
+
+    var smsPhoneInput = smsForm.phone;
+    smsPhoneInput.addEventListener("input", function () {
+      var el = document.getElementById("f-sms-phone");
+      el.classList.toggle("invalid", this.value.length > 0 && !isValidPhone(this.value));
+      // 同步更新发送按钮状态
+      updateSendCodeBtn();
+    });
+
+    /* ---------- 验证码实时校验（≥6位数字） ---------- */
+    var smsCodeInput = smsForm.querySelector('input[name="code"]');
+    smsCodeInput.addEventListener("input", function () {
+      var el = document.getElementById("f-sms-code");
+      el.classList.toggle("invalid", this.value.length > 0 && !/^\d{6}$/.test(this.value));
+    });
+
+    /* ---------- 账号锁定提示 ---------- */
+    function checkLockNotice() {
+      var phone = getCurrentPhone();
+      var notice = document.getElementById("lockNotice");
+      if (!phone || !DB.isPhoneLocked(phone)) {
+        notice.className = "lock-notice warn";
+        notice.innerHTML = "";
+        return false;
+      }
+      var remain = DB.getLockRemaining(phone);
+      var m = Math.floor(remain / 60), s = remain % 60;
+      notice.className = "lock-notice warn show";
+      notice.innerHTML = "<b>该账号已临时锁定</b><br/>连续5次密码错误，请在 <b>" + m + "分" +
+        (s < 10 ? "0" : "") + s + "秒</b> 后重试。";
+      return true;
+    }
+
+    function getCurrentPhone() {
+      var mode = getLoginMode();
+      return mode === "password" ? loginPhoneInput.value.trim() : smsPhoneInput.value.trim();
+    }
+
+    function getLoginMode() {
+      var checked = seg.querySelector('input[name="loginMode"]:checked');
+      return checked ? checked.value : "password";
+    }
+
+    /* ---------- 清除所有错误 ---------- */
+    function clearAllErrors() {
+      ["f-login-phone","f-login-pwd","f-sms-phone","f-sms-code"].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove("invalid");
+      });
+    }
+
+    /* ---------- 验证码发送按钮 + 倒计时 ---------- */
+    var sendBtn = document.getElementById("btnSendCode");
+    var countdownTimer = null;
+
+    function updateSendCodeBtn() {
+      var phone = smsPhoneInput.value.trim();
+      sendBtn.disabled = !isValidPhone(phone);
+      if (!isValidPhone(phone)) {
+        sendBtn.textContent = "获取验证码";
+      }
+    }
+
+    sendBtn.addEventListener("click", function () {
+      var phone = smsPhoneInput.value.trim();
+      if (!isValidPhone(phone)) {
+        App.toast("请先输入正确的手机号码");
+        return;
+      }
+      if (countdownTimer) return; // 倒计时中
+
+      // 模拟发送验证码
+      var code = DB.generateCode(phone);
+      console.log("[Mock] 验证码已发送至 " + phone + "：" + code);
+
+      App.toast("验证码已发送（演示验证码：" + code + "）");
+
+      // 60秒倒计时
+      var left = 60;
+      sendBtn.disabled = true;
+      sendBtn.textContent = left + "秒后重发";
+      countdownTimer = setInterval(function () {
+        left--;
+        if (left <= 0) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          sendBtn.disabled = !isValidPhone(smsPhoneInput.value.trim());
+          sendBtn.textContent = "重新发送";
+        } else {
+          sendBtn.textContent = left + "秒后重发";
+        }
+      }, 1000);
+    });
+
+    /* ---------- 密码登录提交 ---------- */
+    pwdForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var phone = this.phone.value.trim();
+      var pwd = this.password.value;
+      var ok = true;
+      clearAllErrors();
+
+      if (!isValidPhone(phone)) { document.getElementById("f-login-phone").classList.add("invalid"); ok = false; }
+      if (!pwd) { document.getElementById("f-login-pwd").classList.add("invalid"); ok = false; }
+      if (!ok) return;
+
+      // 检查是否锁定
+      if (checkLockNotice()) return;
+
+      // 查找已注册用户；原型下未注册也允许以演示身份登录
+      var user = DB.findUserByPhone(phone);
+      if (!user) {
+        App.toast("该手机号未注册，已使用演示账号登录");
+        user = { type: "personal", account: phone, name: phone + "（个人）",
+          balance: 5000, creditLimit: 20000, usedCredit: 1050 };
+      }
+
+      doLogin(user);
+    });
+
+    /* ---------- 验证码登录提交 ---------- */
+    smsForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var phone = this.phone.value.trim();
+      var code = this.code.value.trim();
+      var ok = true;
+      clearAllErrors();
+
+      if (!isValidPhone(phone)) { document.getElementById("f-sms-phone").classList.add("invalid"); ok = false; }
+      if (!/^\d{6}$/.test(code)) { document.getElementById("f-sms-code").classList.add("invalid"); ok = false; }
+      if (!ok) return;
+
+      // 校验验证码
+      if (!DB.verifyCode(phone, code)) {
+        App.toast("验证码错误，请输入 111111（演示验证码）");
+        return;
+      }
+
+      // 查找用户；原型下未注册也允许以演示身份登录
+      var user = DB.findUserByPhone(phone);
+      if (!user) {
+        App.toast("该手机号未注册，已使用演示账号登录");
+        user = { type: "personal", account: phone, name: phone + "（个人）",
+          balance: 5000, creditLimit: 0, usedCredit: 0 };
+      }
+
+      doLogin(user);
+    });
+
+    /* ---------- 执行登录跳转 ---------- */
+    function doLogin(user) {
+      // 重置失败计数
+      var phone = user.account || user.phone;
+      if (phone) DB.setFailRecord(phone, 0, 0);
+
+      App.loginAs(user);
+      App.toast("登录成功");
+      setTimeout(function () { location.href = getParam("redirect") || "index.html"; }, 600);
+    }
+
+    /* 初始化 */
+    updateSendCodeBtn();
+  </script>
+</body>
+</html>

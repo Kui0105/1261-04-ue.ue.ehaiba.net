@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>订单管理 · 话费代充系统</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>if (!App.requireLogin("orders")) document.write("");</script>
+
+  <div class="container page">
+    <div class="page-head">
+      <h1>订单管理</h1>
+      <p>查看话费充值与短信群发任务的汇总状态与单条明细。可按类型筛选：充值状态（待充值 / 充值中 / 充值成功 / 部分失败）、短信状态（发送中 / 已发送 / 部分失败）。</p>
+    </div>
+
+    <!-- 汇总统计 -->
+    <div class="tiles" id="summaryTiles" style="margin-bottom:18px"></div>
+
+    <!-- 筛选 -->
+    <div class="panel">
+      <div class="filterbar">
+        <div class="field">
+          <label>时间范围</label>
+          <select id="fTime">
+            <option value="">全部</option>
+            <option value="today">今天</option>
+            <option value="7">近 7 天</option>
+            <option value="30">近 30 天</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>订单类型</label>
+          <select id="fKind">
+            <option value="">全部</option>
+            <option value="recharge">话费充值</option>
+            <option value="sms">短信群发</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>订单状态</label>
+          <select id="fStatus">
+            <option value="">全部</option>
+            <option value="pending">待处理</option>
+            <option value="process">进行中</option>
+            <option value="success">已完成</option>
+            <option value="fail">部分失败</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>面值</label>
+          <select id="fFace">
+            <option value="">全部</option>
+            <option value="50">50 元</option>
+            <option value="100">100 元</option>
+            <option value="200">200 元</option>
+            <option value="500">500 元</option>
+          </select>
+        </div>
+        <button class="btn btn-outline" onclick="applyFilter()">查询</button>
+      </div>
+    </div>
+
+    <!-- 订单列表 -->
+    <div class="panel" style="padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table class="table order-table" style="min-width:620px">
+        <thead>
+          <tr>
+            <th></th>
+            <th>类型</th>
+            <th>订单号</th><th>项目</th><th>税费</th><th>号码数</th>
+            <th>订单总额</th><th>状态</th><th>提交时间</th>
+          </tr>
+        </thead>
+        <tbody id="orderBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 订单明细弹窗 -->
+  <div class="modal-mask" id="detailMask">
+    <div class="modal">
+      <h3><span id="detailTitle">订单明细</span><button class="x" onclick="closeDetail()">×</button></h3>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <script>
+    var DB = App.DB;
+    var filtered = [];
+
+    function countBy(orders, status) {
+      return orders.filter(function (o) { return o.status === status; }).length;
+    }
+
+    function renderSummary(orders) {
+      var tiles = [
+        { n: orders.length, l: "订单总数", c: "" },
+        { n: countBy(orders, "success"), l: "已完成", c: "green" },
+        { n: countBy(orders, "process") + countBy(orders, "pending"), l: "进行中/待处理", c: "blue" },
+        { n: countBy(orders, "fail"), l: "部分失败", c: "red" }
+      ];
+      document.getElementById("summaryTiles").innerHTML = tiles.map(function (t) {
+        return '<div class="tile ' + t.c + '"><div class="n">' + t.n + '</div><div class="l">' + t.l + '</div></div>';
+      }).join("");
+    }
+
+    // 短信任务状态徽标（列表）
+    function smsStatusBadge(st) {
+      if (st === "success") return '<span class="badge success">已发送</span>';
+      if (st === "fail") return '<span class="badge fail">部分失败</span>';
+      return '<span class="badge process">发送中</span>';
+    }
+    // 短信明细单行状态
+    function smsRowBadge(st) {
+      if (st === "success") return '<span class="badge success">发送成功</span>';
+      if (st === "fail") return '<span class="badge fail">发送失败</span>';
+      return '<span class="badge process">发送中</span>';
+    }
+
+    function renderList(orders) {
+      var body = document.getElementById("orderBody");
+      if (!orders.length) { body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-2);padding:30px">暂无订单</td></tr>'; return; }
+      body.innerHTML = orders.map(function (o) {
+        var kindBadge = o.kind === "sms"
+          ? '<span class="badge info">短信</span>'
+          : '<span class="badge gray">充值</span>';
+        if (o.kind === "sms") {
+          var tax = o.tax === "taxed" ? "含税" : "未税";
+          return '<tr>' +
+            '<td><a href="javascript:void(0)" class="btn-detail" onclick="openDetail(\'' + o.id + '\')">查看明细</a></td>' +
+            '<td>' + kindBadge + '</td>' +
+            '<td>' + o.id + '</td>' +
+            '<td>' + App.escapeHtml(o.template) + '</td>' +
+            '<td>' + tax + '</td>' +
+            '<td>' + o.count + '</td>' +
+            '<td class="amount">' + App.fmtMoney(o.total) + '</td>' +
+            '<td>' + smsStatusBadge(o.status) + '</td>' +
+            '<td>' + o.createdAt + '</td>' +
+          '</tr>';
+        }
+        var tax = DB.TAX_TYPES[o.tax].label.replace("（6% 专票）", "").replace("（普票）", "");
+        return '<tr>' +
+          '<td><a href="javascript:void(0)" class="btn-detail" onclick="openDetail(\'' + o.id + '\')">查看明细</a></td>' +
+          '<td>' + kindBadge + '</td>' +
+          '<td>' + o.id + '</td>' +
+          '<td>' + o.face + ' 元</td>' +
+          '<td>' + (o.tax === "taxed" ? "含税" : "未税") + '</td>' +
+          '<td>' + o.count + '</td>' +
+          '<td class="amount">' + App.fmtMoney(o.total) + '</td>' +
+          '<td>' + App.orderStatusBadge(o.status) + '</td>' +
+          '<td>' + o.createdAt + '</td>' +
+        '</tr>';
+      }).join("");
+    }
+
+    function applyFilter() {
+      var t = document.getElementById("fTime").value;
+      var kind = document.getElementById("fKind").value;
+      var st = document.getElementById("fStatus").value;
+      var f = document.getElementById("fFace").value;
+      filtered = DB.ORDERS.filter(function (o) {
+        if (kind === "recharge" && o.kind === "sms") return false;
+        if (kind === "sms" && o.kind !== "sms") return false;
+        if (st && o.status !== st) return false;
+        if (f && String(o.face) !== f) return false;
+        return true;
+      });
+      renderList(filtered);
+    }
+
+    function openDetail(id) {
+      var o = DB.ORDERS.find(function (x) { return x.id === id; });
+      if (!o) return;
+      if (o.kind === "sms") { renderSmsDetail(o); return; }
+      document.getElementById("detailTitle").textContent = "订单明细 · " + id;
+      var succ = o.details.filter(function (d) { return d.status === "success"; }).length;
+      var fail = o.details.filter(function (d) { return d.status === "fail"; }).length;
+      var detailHtml =
+        '<div class="tiles" style="margin-bottom:16px">' +
+          '<div class="tile"><div class="n">' + o.count + '</div><div class="l">号码总数</div></div>' +
+          '<div class="tile green"><div class="n">' + succ + '</div><div class="l">成功</div></div>' +
+          '<div class="tile amber"><div class="n">' + (o.count - succ - fail) + '</div><div class="l">处理中</div></div>' +
+          '<div class="tile red"><div class="n">' + fail + '</div><div class="l">失败</div></div>' +
+        '</div>' +
+        '<div style="font-size:13px;color:var(--text-2);margin-bottom:8px">失败金额自动退回账户余额；失败原因由第三方通道返回。</div>' +
+        '<table class="table"><thead><tr><th>手机号</th><th>状态</th><th>失败原因</th><th>回调时间</th></tr></thead><tbody>' +
+        o.details.map(function (d) {
+          return '<tr><td>' + d.phone + '</td><td>' + App.statusBadge(d.status) + '</td>' +
+            '<td>' + (d.reason || "-") + '</td><td>' + (d.callbackAt || "-") + '</td></tr>';
+        }).join("") +
+        '</tbody></table>';
+      document.getElementById("detailBody").innerHTML = detailHtml;
+      document.getElementById("detailMask").classList.add("show");
+    }
+
+    // 短信任务明细（需求8：整体进度 + 单条回执 + 退款明细）
+    function renderSmsDetail(o) {
+      document.getElementById("detailTitle").textContent = "短信任务明细 · " + o.id;
+      var succ = o.details.filter(function (d) { return d.status === "success"; }).length;
+      var fail = o.details.filter(function (d) { return d.status === "fail"; }).length;
+      var proc = o.count - succ - fail;
+      var refund = Math.round(o.unitPrice * fail * 100) / 100;
+      var tax = o.tax === "taxed" ? "含税" : "未税";
+      var detailHtml =
+        '<div class="tiles" style="margin-bottom:16px">' +
+          '<div class="tile"><div class="n">' + o.count + '</div><div class="l">号码总数</div></div>' +
+          '<div class="tile green"><div class="n">' + succ + '</div><div class="l">发送成功</div></div>' +
+          '<div class="tile amber"><div class="n">' + proc + '</div><div class="l">发送中</div></div>' +
+          '<div class="tile red"><div class="n">' + fail + '</div><div class="l">发送失败</div></div>' +
+        '</div>' +
+        '<table class="table" style="margin-bottom:14px"><tbody>' +
+          '<tr><td>短信模板</td><td><b>' + App.escapeHtml(o.template) + '</b></td></tr>' +
+          '<tr><td>计价模式</td><td>' + tax + '（单价 ' + App.fmtMoney(o.unitPrice) + '/条）</td></tr>' +
+          '<tr><td>预扣总额</td><td class="amount">' + App.fmtMoney(o.total) + '</td></tr>' +
+          '<tr style="background:#fff7ed"><td>失败退回</td><td class="amount">' + App.fmtMoney(refund) +
+            ' <span class="muted">（失败 ' + fail + ' 条 × ' + App.fmtMoney(o.unitPrice) + '）</span></td></tr>' +
+        '</tbody></table>' +
+        '<div style="font-size:13px;color:var(--text-2);margin-bottom:8px">失败条数已按回执自动返还余额；以下为单条短信回执状态。</div>' +
+        '<table class="table sms-detail-table"><thead><tr><th>手机号</th><th>状态</th><th>失败原因</th><th>回执时间</th><th>退款</th></tr></thead><tbody>' +
+        o.details.map(function (d) {
+          var isFail = d.status === "fail";
+          return '<tr><td>' + d.phone + '</td><td>' + smsRowBadge(d.status) + '</td>' +
+            '<td>' + (d.reason || "-") + '</td><td>' + (d.callbackAt || "-") + '</td>' +
+            '<td>' + (isFail ? App.fmtMoney(o.unitPrice) : "-") + '</td></tr>';
+        }).join("") +
+        '</tbody></table>';
+      document.getElementById("detailBody").innerHTML = detailHtml;
+      document.getElementById("detailMask").classList.add("show");
+    }
+    function closeDetail() { document.getElementById("detailMask").classList.remove("show"); }
+
+    // 初始化
+    filtered = DB.ORDERS.slice();
+    renderSummary(DB.ORDERS);
+    renderList(filtered);
+  </script>
+</body>
+</html>

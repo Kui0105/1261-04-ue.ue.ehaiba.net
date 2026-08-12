@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>注册 · 话费代充系统</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* 注册页专属微调 */
+    .auth-box { max-width: 460px; }
+
+    /* 验证码输入行（输入框 + 发送按钮） */
+    .code-row { display: flex; gap: 10px; align-items: stretch; }
+    .code-row .field { flex: 1; margin-bottom: 0; }
+    .code-row .field input { height: 46px; }
+    .btn-send-code {
+      flex-shrink: 0; padding: 0 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      white-space: nowrap; min-width: 110px; transition: .15s;
+    }
+    .btn-send-code:not(:disabled) { background: var(--primary); color: #fff; border: none; cursor: pointer; }
+    .btn-send-code:not(:disabled):hover { background: var(--primary-dark); }
+    .btn-send-code:disabled { background: #f3f4f6; color: #9ca3af; border: 1px solid var(--border); cursor: not-allowed; }
+
+    /* 密码规则提示 */
+    .pwd-rule-hint {
+      display: block; margin-top: 5px; font-size: 12px; color: var(--text-2);
+      line-height: 1.4;
+    }
+
+    /* 手机号已注册提示条 */
+    .phone-exists-notice {
+      display: none; padding: 12px 14px; border-radius: 10px; margin-bottom: 14px;
+      font-size: 13px; line-height: 1.5;
+    }
+    .phone-exists-notice.show { display: block; }
+    .phone-exists-notice.warn { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .phone-exists-notice a { color: var(--primary); font-weight: 700; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="inner">
+      <a href="index.html" class="logo"><span class="mark"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></span> 话费代充系统</a>
+      <div class="nav-actions" style="margin-left:auto">
+        <a href="index.html" class="btn btn-ghost btn-sm">返回首页</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="auth-wrap">
+    <!-- 左侧介绍 -->
+    <aside class="auth-aside">
+      <div>
+        <h2>创建您的<br/>话费代充账号</h2>
+        <p>选择个人 or 企业身份完成注册，注册成功即可使用全部用户端功能。</p>
+      </div>
+      <div class="feat">
+        <div><span class="dot"></span> 个人用户：无需实名认证，注册即用</div>
+        <div><span class="dot"></span> 企业用户：填写企业信息，账户唯一</div>
+        <div><span class="dot"></span> 注册后均可申请成为代理商</div>
+      </div>
+      <p style="font-size:12px;opacity:.7">© 2026 海拔科技 ehaiba.com</p>
+    </aside>
+
+    <!-- 右侧注册表单 -->
+    <main class="auth-main">
+      <div class="auth-box">
+        <h1>注册</h1>
+        <p class="lead">请先选择注册身份（仅影响注册所需资料，登录时不区分身份）。</p>
+
+        <!-- 手机号已注册提示 -->
+        <div class="phone-exists-notice warn" id="phoneExistsNotice"></div>
+
+        <!-- 注册身份选择（仅注册阶段，登录仍为统一类型） -->
+        <div class="seg" id="typeSeg" style="margin-bottom:18px">
+          <label class="checked" data-type="personal">
+            <input type="radio" name="regType" value="personal" checked />
+            <span class="tick">✓</span>
+            <div class="t">个人用户</div>
+            <div class="d">自然人，零散充值</div>
+          </label>
+          <label data-type="enterprise">
+            <input type="radio" name="regType" value="enterprise" />
+            <span class="tick">✓</span>
+            <div class="t">企业用户</div>
+            <div class="d">电销公司等批量充值</div>
+          </label>
+        </div>
+
+        <form id="regForm" novalidate>
+          <!-- ===== 个人用户字段：手机号 + 验证码 + 密码 ===== -->
+          <div id="personalFields">
+            <div class="field" id="f-reg-phone-p">
+              <label>手机号码</label>
+              <input type="tel" name="phone" placeholder="用于登录的手机号" maxlength="11"
+                inputmode="numeric" autocomplete="tel" />
+              <div class="err">请输入有效的11位手机号码</div>
+            </div>
+
+            <div class="field" id="f-reg-code-p">
+              <label>验证码</label>
+              <div class="code-row">
+                <div style="flex:1">
+                  <input type="text" name="code-p" placeholder="请输入6位验证码" maxlength="6"
+                    inputmode="numeric"
+                    style="width:100%;height:46px;padding:11px 13px;border:1px solid var(--border);
+                    border-radius:10px;font-size:14px;font-family:inherit;box-sizing:border-box;-webkit-appearance:none;" />
+                </div>
+                <button type="button" class="btn-send-code" id="btnSendCodeReg">获取验证码</button>
+              </div>
+              <div class="err" style="margin-top:5px">请输入6位数字验证码</div>
+            </div>
+
+            <div class="field" id="f-reg-pwd-p">
+              <label>密码</label>
+              <input type="password" name="password-p" placeholder="设置登录密码（至少6位）"
+                autocomplete="new-password" />
+              <div class="err">密码至少6位</div>
+              <span class="pwd-rule-hint">密码需至少6位，建议包含大小写字母与数字</span>
+            </div>
+          </div>
+
+          <!-- ===== 企业用户字段：企业名称 + 统一社会信用代码 + 联系电话 + 验证码 + 密码 ===== -->
+          <div id="enterpriseFields" style="display:none">
+            <div class="field" id="f-corp">
+              <label>企业名称</label>
+              <input type="text" name="company" placeholder="营业执照上的企业全称" />
+              <div class="err">请输入企业名称</div>
+            </div>
+
+            <div class="field" id="f-credit">
+              <label>统一社会信用代码</label>
+              <input type="text" name="creditCode" placeholder="18 位统一社会信用代码" maxlength="18" />
+              <div class="err">请输入统一社会信用代码</div>
+            </div>
+
+            <div class="field" id="f-admin">
+              <label>联系电话</label>
+              <input type="tel" name="adminPhone" placeholder="企业管理员手机号" maxlength="11"
+                inputmode="numeric" />
+              <div class="err">请输入有效的11位手机号码</div>
+            </div>
+
+            <div class="field" id="f-reg-code-e">
+              <label>验证码</label>
+              <div class="code-row">
+                <div style="flex:1">
+                  <input type="text" name="code-e" placeholder="请输入6位验证码" maxlength="6"
+                    inputmode="numeric"
+                    style="width:100%;height:46px;padding:11px 13px;border:1px solid var(--border);
+                    border-radius:10px;font-size:14px;font-family:inherit;box-sizing:border-box;-webkit-appearance:none;" />
+                </div>
+                <button type="button" class="btn-send-code" id="btnSendCodeRegE">获取验证码</button>
+              </div>
+              <div class="err" style="margin-top:5px">请输入6位数字验证码</div>
+            </div>
+
+            <div class="field" id="f-reg-pwd-e">
+              <label>密码</label>
+              <input type="password" name="password-e" placeholder="设置登录密码（至少6位）"
+                autocomplete="new-password" />
+              <div class="err">密码至少6位</div>
+              <span class="pwd-rule-hint">密码需至少6位，建议包含大小写字母与数字</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg">注册并登录</button>
+        </form>
+
+        <p class="auth-switch">已有账号？<a href="login.html">去登录</a></p>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var DB = App.DB;
+
+    function isValidPhone(v) { return /^1\d{10}$/.test(v); }
+
+    /* ---------- 注册身份切换 ---------- */
+    var seg = document.getElementById("typeSeg");
+    var pf = document.getElementById("personalFields");
+    var ef = document.getElementById("enterpriseFields");
+    seg.addEventListener("change", function (e) {
+      if (e.target.name !== "regType") return;
+      var type = e.target.value;
+      Array.from(seg.querySelectorAll("label")).forEach(function (l) {
+        l.classList.toggle("checked", l.dataset.type === type);
+      });
+      pf.style.display = type === "personal" ? "" : "none";
+      ef.style.display = type === "enterprise" ? "" : "none";
+      hidePhoneExistsNotice();
+    });
+
+    /* ---------- 手机号实时校验 ---------- */
+    var personalPhoneInput = document.querySelector('#personalFields input[name="phone"]');
+    var enterprisePhoneInput = document.querySelector('#enterpriseFields input[name="adminPhone"]');
+
+    personalPhoneInput.addEventListener("input", function () {
+      var el = document.getElementById("f-reg-phone-p");
+      el.classList.toggle("invalid", this.value.length > 0 && !isValidPhone(this.value));
+      checkPhoneExists(this.value.trim());
+      updateSendCodeBtnReg();
+    });
+
+    enterprisePhoneInput.addEventListener("input", function () {
+      var el = document.getElementById("f-admin");
+      el.classList.toggle("invalid", this.value.length > 0 && !isValidPhone(this.value));
+      checkPhoneExists(this.value.trim());
+      updateSendCodeBtnRegE();
+    });
+
+    /* ---------- 验证码实时校验 ---------- */
+    var personalCodeInput = document.querySelector('#personalFields input[name="code-p"]');
+    var enterpriseCodeInput = document.querySelector('#enterpriseFields input[name="code-e"]');
+
+    personalCodeInput.addEventListener("input", function () {
+      var el = document.getElementById("f-reg-code-p");
+      el.classList.toggle("invalid", this.value.length > 0 && !/^\d{6}$/.test(this.value));
+    });
+    enterpriseCodeInput.addEventListener("input", function () {
+      var el = document.getElementById("f-reg-code-e");
+      el.classList.toggle("invalid", this.value.length > 0 && !/^\d{6}$/.test(this.value));
+    });
+
+    /* ---------- 手机号唯一性检测 ---------- */
+    function checkPhoneExists(phone) {
+      var notice = document.getElementById("phoneExistsNotice");
+      if (!isValidPhone(phone)) {
+        hidePhoneExistsNotice();
+        return false;
+      }
+      if (DB.findUserByPhone(phone)) {
+        notice.className = "phone-exists-notice warn show";
+        notice.innerHTML = "该手机号已注册，请直接<a href='login.html'>登录</a>";
+        return true;
+      }
+      hidePhoneExistsNotice();
+      return false;
+    }
+
+    function hidePhoneExistsNotice() {
+      var notice = document.getElementById("phoneExistsNotice");
+      notice.className = "phone-exists-notice warn";
+      notice.innerHTML = "";
+    }
+
+    /* ---------- 个人用户验证码发送按钮 ---------- */
+    var sendBtnReg = document.getElementById("btnSendCodeReg");
+    var countdownTimerReg = null;
+
+    function updateSendCodeBtnReg() {
+      var phone = personalPhoneInput.value.trim();
+      sendBtnReg.disabled = !isValidPhone(phone);
+      if (!isValidPhone(phone)) sendBtnReg.textContent = "获取验证码";
+    }
+
+    sendBtnReg.addEventListener("click", function () {
+      var phone = personalPhoneInput.value.trim();
+      if (!isValidPhone(phone)) { App.toast("请先输入正确的手机号码"); return; }
+      if (countdownTimerReg) return;
+
+      var code = DB.generateCode(phone);
+      console.log("[Mock] 验证码已发送至 " + phone + "：" + code);
+      App.toast("验证码已发送（演示验证码：" + code + "）");
+
+      startCountdown(sendBtnReg, function () { countdownTimerReg = null; }, function() { countdownTimerReg = null; updateSendCodeBtnReg(); });
+    });
+
+    /* ---------- 企业用户验证码发送按钮 ---------- */
+    var sendBtnRegE = document.getElementById("btnSendCodeRegE");
+    var countdownTimerRegE = null;
+
+    function updateSendCodeBtnRegE() {
+      var phone = enterprisePhoneInput.value.trim();
+      sendBtnRegE.disabled = !isValidPhone(phone);
+      if (!isValidPhone(phone)) sendBtnRegE.textContent = "获取验证码";
+    }
+
+    sendBtnRegE.addEventListener("click", function () {
+      var phone = enterprisePhoneInput.value.trim();
+      if (!isValidPhone(phone)) { App.toast("请先输入正确的手机号码"); return; }
+      if (countdownTimerRegE) return;
+
+      var code = DB.generateCode(phone);
+      console.log("[Mock] 验证码已发送至 " + phone + "：" + code);
+      App.toast("验证码已发送（演示验证码：" + code + "）");
+
+      startCountdown(sendBtnRegE, function() { countdownTimerRegE = null; }, function() { countdownTimerRegE = null; updateSendCodeBtnRegE(); });
+    });
+
+    /* ---------- 倒计时通用函数 ---------- */
+    function startCountdown(btn, onTick, onDone) {
+      var left = 60;
+      btn.disabled = true;
+      btn.textContent = left + "秒后重发";
+      var timer = setInterval(function () {
+        left--;
+        if (left <= 0) {
+          clearInterval(timer);
+          onDone();
+        } else {
+          btn.textContent = left + "秒后重发";
+          if (onTick) onTick();
+        }
+      }, 1000);
+      return timer;
+    }
+
+    /* ---------- 注册提交 ---------- */
+    // 显式引用表单控件：避免表单 named-property 访问（this.xxx）在预览 iframe 中失效返回 undefined
+    var regForm = document.getElementById("regForm");
+    var personalPwdInput = document.querySelector('#personalFields input[name="password-p"]');
+    var enterpriseCompanyInput = document.querySelector('#enterpriseFields input[name="company"]');
+    var enterpriseCreditInput = document.querySelector('#enterpriseFields input[name="creditCode"]');
+    var enterprisePwdInput = document.querySelector('#enterpriseFields input[name="password-e"]');
+
+    function getRegType() {
+      var checked = document.querySelector('input[name="regType"]:checked');
+      return checked ? checked.value : "personal";
+    }
+
+    regForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      try {
+        var type = getRegType();
+        var ok = true;
+
+        // 清除旧错误
+        ["f-reg-phone-p","f-reg-code-p","f-reg-pwd-p",
+         "f-corp","f-credit","f-admin","f-reg-code-e","f-reg-pwd-e"].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.classList.remove("invalid");
+        });
+
+        if (type === "personal") {
+          // 个人用户校验（全部走显式 querySelector 引用，杜绝 this.xxx 失效）
+          var pPhone = (personalPhoneInput.value || "").trim();
+          var pCode = (personalCodeInput.value || "").trim();
+          var pPwd = personalPwdInput.value || "";
+
+          if (!isValidPhone(pPhone)) { document.getElementById("f-reg-phone-p").classList.add("invalid"); ok = false; }
+          else if (DB.findUserByPhone(pPhone)) {
+            App.toast("该手机号已注册，请直接登录");
+            setTimeout(function() { location.href = "login.html"; }, 800);
+            return;
+          }
+          if (!/^\d{6}$/.test(pCode)) { document.getElementById("f-reg-code-p").classList.add("invalid"); ok = false; }
+          else if (!DB.verifyCode(pPhone, pCode)) { App.toast("验证码错误或已过期"); ok = false; }
+          if (pPwd.length < 6) { document.getElementById("f-reg-pwd-p").classList.add("invalid"); ok = false; }
+
+          if (!ok) return;
+
+          // 注册个人用户
+          var user = {
+            type: "personal", account: pPhone, phone: pPhone,
+            name: pPhone + "（个人）", password: pPwd,
+            balance: 0, creditLimit: 0, usedCredit: 0, isAgent: false
+          };
+          DB.addUser(user);
+
+          // 自动登录
+          App.loginAs(user);
+          App.toast("注册成功，已自动登录");
+          setTimeout(function () { location.href = "index.html"; }, 700);
+
+        } else {
+          // 企业用户校验
+          var company = (enterpriseCompanyInput.value || "").trim();
+          var creditCode = (enterpriseCreditInput.value || "").trim();
+          var ePhone = (enterprisePhoneInput.value || "").trim();
+          var eCode = (enterpriseCodeInput.value || "").trim();
+          var ePwd = enterprisePwdInput.value || "";
+
+          if (!company) { document.getElementById("f-corp").classList.add("invalid"); ok = false; }
+          if (!creditCode) { document.getElementById("f-credit").classList.add("invalid"); ok = false; }
+          if (!isValidPhone(ePhone)) { document.getElementById("f-admin").classList.add("invalid"); ok = false; }
+          else if (DB.findUserByPhone(ePhone)) {
+            App.toast("该手机号已注册，请直接登录");
+            setTimeout(function() { location.href = "login.html"; }, 800);
+            return;
+          }
+          if (!/^\d{6}$/.test(eCode)) { document.getElementById("f-reg-code-e").classList.add("invalid"); ok = false; }
+          else if (!DB.verifyCode(ePhone, eCode)) { App.toast("验证码错误或已过期"); ok = false; }
+          if (ePwd.length < 6) { document.getElementById("f-reg-pwd-e").classList.add("invalid"); ok = false; }
+
+          if (!ok) return;
+
+          // 注册企业用户
+          var user = {
+            type: "enterprise", account: ePhone, phone: ePhone,
+            name: company, password: ePwd,
+            companyName: company, creditCode: creditCode,
+            balance: 0, creditLimit: 20000, usedCredit: 0, isAgent: false
+          };
+          DB.addUser(user);
+
+          // 自动登录
+          App.loginAs(user);
+          App.toast("注册成功，已自动登录");
+          setTimeout(function () { location.href = "index.html"; }, 700);
+        }
+      } catch (err) {
+        console.error("[register submit error]", err);
+        App.toast("提交失败：" + (err && err.message ? err.message : "未知错误"));
+      }
+    });
+
+    /* 初始化 */
+    updateSendCodeBtnReg();
+    updateSendCodeBtnRegE();
+  </script>
+</body>
+</html>

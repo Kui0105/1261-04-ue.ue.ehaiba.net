@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>账户中心 · 话费代充系统</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>if (!App.requireLogin("account")) document.write("");</script>
+
+  <div class="container page">
+    <div class="page-head">
+      <h1>账户中心</h1>
+      <p>查看账户余额、预授权额度、交易明细，如需退款请线下联系平台处理。</p>
+    </div>
+
+    <!-- 账户充值入口 -->
+    <div class="panel rech-entry">
+      <div class="rech-entry-info">
+        <div class="rech-entry-icon">💳</div>
+        <div>
+          <b>账户充值</b>
+          <p id="rechEntryDesc">为账户余额加款，用于话费充值消费。</p>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="openRecharge()">立即充值</button>
+    </div>
+
+    <!-- 余额 / 额度 -->
+    <div class="tiles" id="balanceTiles" style="margin-bottom:18px"></div>
+
+    <!-- 交易明细 -->
+    <div class="panel" style="padding:0">
+      <div style="padding:18px 22px 0"><h3 style="margin:0">交易明细</h3></div>
+      <div style="overflow-x:auto">
+        <table class="table flow-table">
+          <thead><tr><th>流水号</th><th>类型</th><th>金额</th><th>变动后余额</th><th>操作人</th><th>时间</th></tr></thead>
+          <tbody id="flowBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 个人微信支付弹窗 -->
+  <div class="modal-mask" id="wxMask">
+    <div class="modal" style="max-width:420px">
+      <h3><span>微信支付充值</span><button class="x" onclick="closeWx()">×</button></h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">请选择充值金额，确认后将调起微信支付。</p>
+      <div class="amount-chips" id="wxAmountChips"></div>
+      <div class="field" style="margin-top:12px">
+        <label>充值金额（元）</label>
+        <input type="number" id="wxAmount" min="1" step="1" placeholder="请输入金额" />
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn btn-ghost" onclick="closeWx()" style="flex:1">取消</button>
+        <button class="btn btn-primary" onclick="doWxPay()" style="flex:1">调起微信支付</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 企业对公收款账户弹窗 -->
+  <div class="modal-mask" id="corpMask">
+    <div class="modal" style="max-width:460px">
+      <h3><span>对公账户充值</span><button class="x" onclick="closeCorp()">×</button></h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">请通过对公转账向以下账户充值，到账后由财务人工加款。</p>
+      <div class="corp-account" id="corpAccountBox"></div>
+      <div class="banner" style="margin-top:14px">
+        <div class="txt"><b>温馨提示</b><p id="corpNote"></p></div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="closeCorp()" style="margin-top:16px">我知道了</button>
+    </div>
+  </div>
+
+  <script>
+    var DB = App.DB;
+    var s = App.getSession() || {};
+
+    (function renderBalance() {
+      var tiles = [{ n: App.fmtMoney(s.balance), l: "账户余额（可用于充值）", c: "blue" }];
+      if (s.type === "enterprise") {
+        tiles.push({ n: App.fmtMoney(s.creditLimit), l: "预授权额度上限", c: "" });
+        tiles.push({ n: App.fmtMoney(s.usedCredit), l: "已用预授权额度", c: "amber" });
+        tiles.push({ n: App.fmtMoney(s.creditLimit - s.usedCredit), l: "可用预授权额度", c: "green" });
+      } else {
+        tiles.push({ n: "—", l: "个人用户无预授权额度", c: "" });
+        tiles.push({ n: "不可用", l: "余额不可自主提现", c: "" });
+        tiles.push({ n: "线下", l: "退款方式", c: "amber" });
+      }
+      document.getElementById("balanceTiles").innerHTML = tiles.map(function (t) {
+        return '<div class="tile ' + t.c + '"><div class="n">' + t.n + '</div><div class="l">' + t.l + '</div></div>';
+      }).join("");
+    })();
+
+    document.getElementById("flowBody").innerHTML = DB.FLOWS.map(function (f) {
+      var cls = f.amount >= 0 ? "success" : "fail";
+      return '<tr>' +
+        '<td>' + f.id + '</td>' +
+        '<td><span class="badge ' + cls + '">' + f.type + '</span></td>' +
+        '<td class="amount" style="color:' + (f.amount >= 0 ? "var(--success)" : "var(--danger)") + '">' +
+          (f.amount >= 0 ? "+" : "") + App.fmtMoney(f.amount) + '</td>' +
+        '<td>' + App.fmtMoney(f.after) + '</td>' +
+        '<td>' + f.op + '</td>' +
+        '<td>' + f.time + '</td>' +
+      '</tr>';
+    }).join("");
+
+    /* ---------- 账户充值入口（按用户类型 + 设备分流） ---------- */
+    (function initRechargeEntry() {
+      var desc = document.getElementById("rechEntryDesc");
+      if (s.type === "enterprise") {
+        desc.textContent = "通过对公转账向平台账户充值，到账后由财务人工加款。";
+      } else {
+        desc.textContent = "在手机端使用微信支付为账户余额加款。";
+      }
+    })();
+
+    function isMobile() {
+      return /Mobi|Android|iPhone|iPad|iPod|MicroMessenger/i.test(navigator.userAgent) || window.innerWidth <= 640;
+    }
+
+    function openRecharge() {
+      if (s.type === "enterprise") {
+        openCorp();
+      } else {
+        if (!isMobile()) {
+          App.toast("个人用户充值请在手机端使用微信支付");
+          return;
+        }
+        openWx();
+      }
+    }
+
+    /* --- 个人微信支付 --- */
+    function openWx() {
+      var chips = DB.RECHARGE_AMOUNTS.map(function (a, i) {
+        return '<button type="button" class="amount-chip ' + (i === 0 ? "active" : "") +
+          '" onclick="selectWxAmount(' + a + ', this)">' + a + '</button>';
+      }).join("");
+      document.getElementById("wxAmountChips").innerHTML = chips;
+      document.getElementById("wxAmount").value = DB.RECHARGE_AMOUNTS[0];
+      document.getElementById("wxMask").classList.add("show");
+    }
+    function selectWxAmount(a, el) {
+      document.getElementById("wxAmount").value = a;
+      var chips = document.querySelectorAll("#wxAmountChips .amount-chip");
+      chips.forEach(function (c) { c.classList.remove("active"); });
+      el.classList.add("active");
+    }
+    function closeWx() { document.getElementById("wxMask").classList.remove("show"); }
+    function doWxPay() {
+      var amount = parseFloat(document.getElementById("wxAmount").value);
+      if (!amount || amount <= 0) { App.toast("请输入有效的充值金额"); return; }
+      closeWx();
+      App.toast("正在调起微信支付 " + App.fmtMoney(amount) + " …");
+      // 原型演示：模拟微信支付回调加款
+      s.balance = Math.round((s.balance + amount) * 100) / 100;
+      DB.setSession(s);
+      setTimeout(function () {
+        App.toast("微信支付成功，余额已更新");
+        location.reload();
+      }, 900);
+    }
+
+    /* --- 企业对公账户 --- */
+    function openCorp() {
+      var c = DB.CORP_ACCOUNT;
+      document.getElementById("corpAccountBox").innerHTML =
+        '<div class="ca-row"><span class="ca-k">收款户名</span><span class="ca-v">' + App.escapeHtml(c.company) + '</span></div>' +
+        '<div class="ca-row"><span class="ca-k">开户银行</span><span class="ca-v">' + App.escapeHtml(c.bank) + '</span></div>' +
+        '<div class="ca-row"><span class="ca-k">收款账号</span><span class="ca-v mono">' + App.escapeHtml(c.account) + '</span></div>';
+      document.getElementById("corpNote").textContent = c.note + " " + c.support;
+      document.getElementById("corpMask").classList.add("show");
+    }
+    function closeCorp() { document.getElementById("corpMask").classList.remove("show"); }
+  </script>
+</body>
+</html>

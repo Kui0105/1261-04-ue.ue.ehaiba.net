@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>话费充值 · 话费代充系统</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>if (!App.requireLogin("recharge")) document.write("");</script>
+
+  <div class="container page">
+    <div class="page-head">
+      <h1>话费充值</h1>
+      <p>选择税费类型与充值面值，批量导入号码后提交订单。同一批次号码对应同一种面值、同一种税费类型。</p>
+    </div>
+
+    <!-- 支付模式提示 -->
+    <div class="pay-mode-banner" id="payModeBanner">
+      <div class="pay-mode-icon" id="payModeIcon">💳</div>
+      <div class="pay-mode-info">
+        <b id="payModeTitle">个人充值</b>
+        <p id="payModeDesc">提交订单后将通过微信支付完成付款（平台承担手续费）。</p>
+      </div>
+      <span class="pay-mode-badge" id="payModeBadge">个人用户</span>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <!-- 步骤1 税费类型 -->
+        <div class="panel">
+          <h3>① 选择充值通道（税费类型）</h3>
+          <div class="seg" id="taxSeg">
+            <label class="checked" data-tax="taxed">
+              <input type="radio" name="tax" value="taxed" checked />
+              <span class="tick">✓</span>
+              <div class="t">含税（6% 专票）</div>
+              <div class="d">平台开具增值税专用发票</div>
+            </label>
+            <label data-tax="untaxed">
+              <input type="radio" name="tax" value="untaxed" />
+              <span class="tick">✓</span>
+              <div class="t">未税（普票）</div>
+              <div class="d">用户自行前往营业厅打印</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 步骤2 面值 -->
+        <div class="panel">
+          <h3>② 选择充值面值</h3>
+          <div class="seg" id="faceSeg"></div>
+          <p class="hint" id="priceHint" style="margin-top:12px"></p>
+        </div>
+      </div>
+
+      <div>
+        <!-- 步骤3 号码导入 -->
+        <div class="panel">
+          <h3>③ 导入充值号码</h3>
+          <div class="filterbar" style="margin-bottom:12px">
+            <button class="btn btn-outline btn-sm" onclick="importExcel()">📥 导入 Excel 号码表</button>
+            <button class="btn btn-ghost btn-sm" onclick="fillSample()">粘贴示例号码</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearPhones()">清空</button>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>手动粘贴号码（每行一个 / 逗号分隔）</label>
+            <textarea id="phoneInput" rows="9" placeholder="13800138001
+13912345678
+13600001111"></textarea>
+            <div class="hint">已识别号码：<b id="phoneCount">0</b> 个（仅展示前 200 个）</div>
+          </div>
+        </div>
+
+        <!-- 费用预估 -->
+        <div class="panel">
+          <h3>费用预估</h3>
+          <div id="estBox">请选择面值并导入号码。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 提交栏 -->
+    <div class="summary">
+      <div>
+        <div class="total" id="totalMoney">¥0.00</div>
+        <small id="totalMeta">面值 - · 税费 - · 号码 0 个</small>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="location.href='orders.html'">查看历史订单</button>
+        <button class="btn btn-primary btn-lg" onclick="submitOrder()">提交订单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 二次确认弹窗 -->
+  <div class="modal-mask" id="confirmMask">
+    <div class="modal" style="max-width:480px">
+      <h3><span id="confirmTitle">确认提交订单</span><button class="x" onclick="closeConfirm()">×</button></h3>
+      <div id="confirmBody"></div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn btn-ghost" onclick="closeConfirm()" style="flex:1">取消</button>
+        <button class="btn btn-primary" onclick="doSubmitOrder()" style="flex:1">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="okMask">
+    <div class="modal" style="max-width:420px;text-align:center">
+      <div style="font-size:46px">✅</div>
+      <h3 style="justify-content:center">订单提交成功</h3>
+      <p style="color:var(--text-2);margin-bottom:18px">订单已进入充值队列，可在「订单管理」查看实时状态。</p>
+      <p style="font-weight:700;margin-bottom:18px" id="okOrderId"></p>
+      <button class="btn btn-primary btn-block" onclick="location.href='orders.html'">前往订单管理</button>
+    </div>
+  </div>
+
+  <script>
+    var DB = App.DB;
+    var state = { tax: "taxed", face: 100, phones: [] };
+    var s = App.getSession() || {};
+
+    /* ---------- 支付模式提示（个人 / 公司） ---------- */
+    (function renderPayMode() {
+      var icon = document.getElementById("payModeIcon");
+      var title = document.getElementById("payModeTitle");
+      var desc = document.getElementById("payModeDesc");
+      var badge = document.getElementById("payModeBadge");
+      var banner = document.getElementById("payModeBanner");
+
+      if (s.type === "enterprise") {
+        icon.textContent = "🏢";
+        title.textContent = "公司充值";
+        desc.textContent = "订单金额将从账户余额 / 预授权额度中扣除，余额不足请先通过对公转账充值。";
+        badge.textContent = "企业用户";
+        badge.className = "pay-mode-badge corp";
+      } else {
+        icon.textContent = "👤";
+        title.textContent = "个人充值";
+        desc.textContent = "提交订单后将通过微信支付完成付款（平台承担手续费）。";
+        badge.textContent = "个人用户";
+        badge.className = "pay-mode-badge personal";
+      }
+    })();
+
+    // 渲染面值卡片
+    (function () {
+      var seg = document.getElementById("faceSeg");
+      seg.innerHTML = DB.FACE_VALUES.map(function (v, i) {
+        return '<label class="' + (i === 1 ? "checked" : "") + '" data-face="' + v + '">' +
+          '<input type="radio" name="face" value="' + v + '"' + (i === 1 ? " checked" : "") + '/>' +
+          '<span class="tick">✓</span><div class="t">' + v + ' 元</div>' +
+          '<div class="d" data-price="' + v + '"></div></label>';
+      }).join("");
+      recalcPriceLabels();
+    })();
+
+    function recalcPriceLabels() {
+      var t = DB.TAX_TYPES[state.tax];
+      document.querySelectorAll("#faceSeg [data-price]").forEach(function (el) {
+        var base = Number(el.dataset.price);
+        var price = t.rate ? base * (1 + t.rate) : base;
+        el.textContent = t.rate ? ("单价 " + App.fmtMoney(price)) : "单价 " + App.fmtMoney(base);
+      });
+    }
+
+    // 税费切换
+    document.getElementById("taxSeg").addEventListener("change", function (e) {
+      if (e.target.name !== "tax") return;
+      state.tax = e.target.value;
+      document.querySelectorAll("#taxSeg label").forEach(function (l) {
+        l.classList.toggle("checked", l.dataset.tax === state.tax);
+      });
+      recalcPriceLabels();
+      update();
+    });
+    // 面值切换
+    document.getElementById("faceSeg").addEventListener("change", function (e) {
+      if (e.target.name !== "face") return;
+      state.face = Number(e.target.value);
+      document.querySelectorAll("#faceSeg label").forEach(function (l) {
+        l.classList.toggle("checked", Number(l.dataset.face) === state.face);
+      });
+      update();
+    });
+
+    // 号码解析
+    var phoneInput = document.getElementById("phoneInput");
+    phoneInput.addEventListener("input", parsePhones);
+    function parsePhones() {
+      var raw = phoneInput.value;
+      var list = raw.split(/[\s,，;；]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+      // 仅保留 11 位以 1 开头的号码（原型校验）
+      state.phones = list.filter(function (p) { return /^1\d{10}$/.test(p); });
+      document.getElementById("phoneCount").textContent = state.phones.length;
+      update();
+    }
+
+    function fillSample() {
+      phoneInput.value = DB.PHONE_POOL.slice(0, 12).join("\n");
+      parsePhones();
+      App.toast("已填入 12 个示例号码");
+    }
+    function clearPhones() {
+      if (state.phones.length && !confirm("确认清空已导入的 " + state.phones.length + " 个号码？\n此操作不可撤销。")) return;
+      phoneInput.value = "";
+      parsePhones();
+    }
+    function importExcel() {
+      // 原型：模拟从 Excel 导入一批号码
+      phoneInput.value = DB.PHONE_POOL.join("\n");
+      parsePhones();
+      App.toast("已从 Excel 导入 " + state.phones.length + " 个号码");
+    }
+
+    function update() {
+      var t = DB.TAX_TYPES[state.tax];
+      var unit = t.rate ? state.face * (1 + t.rate) : state.face;
+      var count = state.phones.length;
+      var total = unit * count;
+
+      document.getElementById("priceHint").textContent =
+        "当前通道：" + t.label + "，单价 " + App.fmtMoney(unit) + (t.rate ? "（面值 " + state.face + " × 1.06）" : "");
+
+      document.getElementById("estBox").innerHTML = count
+        ? '<div class="tiles">' +
+            '<div class="tile"><div class="n">' + count + '</div><div class="l">号码数量</div></div>' +
+            '<div class="tile blue"><div class="n">' + App.fmtMoney(unit) + '</div><div class="l">单号金额</div></div>' +
+            '<div class="tile green"><div class="n">' + App.fmtMoney(total) + '</div><div class="l">订单总额</div></div>' +
+          '</div>'
+        : "请选择面值并导入号码。";
+
+      document.getElementById("totalMoney").textContent = App.fmtMoney(total);
+      document.getElementById("totalMeta").textContent =
+        "面值 " + state.face + " 元 · " + (t.rate ? "含税" : "未税") + " · 号码 " + count + " 个";
+    }
+
+    function submitOrder() {
+      if (!state.phones.length) { App.toast("请先导入充值号码"); return; }
+      var t = DB.TAX_TYPES[state.tax];
+      var unit = t.rate ? state.face * (1 + t.rate) : state.face;
+      var total = unit * state.phones.length;
+      var s = App.getSession();
+
+      // 校验额度
+      if (s.type === "enterprise") {
+        var avail = s.balance + (s.creditLimit - s.usedCredit);
+        if (total > avail) { App.toast("余额 / 预授权额度不足"); return; }
+      }
+
+      // 构建确认弹窗内容
+      var afterBalance = Math.max(0, s.balance - total);
+      var afterCreditUsed = s.type === "enterprise" ? Math.min(s.creditLimit, s.usedCredit + Math.max(0, total - s.balance)) : 0;
+      var afterCreditAvail = s.type === "enterprise" ? Math.max(0, s.creditLimit - afterCreditUsed) : 0;
+
+      document.getElementById("confirmBody").innerHTML =
+        '<table class="table" style="margin-bottom:14px;table-layout:fixed;width:100%"><tbody>' +
+          '<tr><td style="width:38%">充值面值</td><td><b>' + state.face + ' 元</b></td></tr>' +
+          '<tr><td>税费类型</td><td>' + (state.tax === "taxed" ? "含税（6% 专票）" : "未税（普票）") + '</td></tr>' +
+          '<tr><td>号码数量</td><td><b>' + state.phones.length + ' 个</b></td></tr>' +
+          '<tr><td>单号金额</td><td class="amount">' + App.fmtMoney(unit) + '</td></tr>' +
+          '<tr style="background:#f0f4ff"><td class="amount" colspan="2">订单总额：' + App.fmtMoney(total) + '</td></tr>' +
+        '</tbody></table>' +
+        (s.type === "enterprise"
+          ? '<div class="tiles confirm-tiles">' +
+              '<div class="tile blue"><div class="n">' + App.fmtMoney(s.balance) + '</div><div class="l">当前余额</div></div>' +
+              '<div class="tile red"><div class="n">' + App.fmtMoney(total) + '</div><div class="l">本次消费</div></div>' +
+              '<div class="tile green"><div class="n">' + App.fmtMoney(afterBalance) + '</div><div class="l">消费后余额</div></div>' +
+            '</div>'
+          : ''
+        ) +
+        (s.type === "personal"
+          ? '<p style="font-size:13px;color:var(--text-2);text-align:center;padding:8px 0">' +
+            '本次将发起微信支付 <b style="color:var(--primary)">' + App.fmtMoney(total) + '</b>（平台承担手续费）</p>'
+          : ''
+        );
+
+      document.getElementById("confirmMask").classList.add("show");
+    }
+
+    function closeConfirm() { document.getElementById("confirmMask").classList.remove("show"); }
+
+    function doSubmitOrder() {
+      closeConfirm();
+      var t = DB.TAX_TYPES[state.tax];
+      var unit = t.rate ? state.face * (1 + t.rate) : state.face;
+      var total = unit * state.phones.length;
+      var s = App.getSession();
+
+      // 个人用户二次确认支付
+      if (s.type !== "enterprise") {
+        if (!confirm("将发起微信支付 " + App.fmtMoney(total) + "（平台承担手续费），确认支付？")) return;
+      }
+
+      // 生成订单
+      var id = "ORD" + Date.now();
+      var order = {
+        id: id, face: state.face, tax: state.tax, total: total, count: state.phones.length,
+        status: "process", createdAt: new Date().toLocaleString("zh-CN").slice(0, 16),
+        finishedAt: "", details: DB.genDetails(state.phones.length)
+      };
+      DB.ORDERS.unshift(order);
+      // 同步余额
+      s.balance = Math.max(0, s.balance - total);
+      DB.setSession(s);
+
+      document.getElementById("okOrderId").textContent = "订单号：" + id;
+      document.getElementById("okMask").classList.add("show");
+    }
+
+    update();
+  </script>
+</body>
+</html>
