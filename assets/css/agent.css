@@ -265,3 +265,25 @@
 .comm-pill.direct { background: #eff6ff; color: #2563eb; }
 .comm-pill.indirect { background: #f0fdf4; color: #16a34a; }
 .comm-pill.none { background: #f9fafb; color: #9ca3af; }
+
+/* ========== 代理商中心卡片：一行显示不换行 ========== */
+#agentTiles {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+/* 卡片内数字与标签不换行，避免挤压换行 */
+#agentTiles .tile .n {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#agentTiles .tile .l {
+  white-space: nowrap;
+}
+/* 窄屏：保持一行，横向滚动而非折行 */
+@media (max-width: 635px) {
+  #agentTiles {
+    grid-template-columns: repeat(5, minmax(96px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}

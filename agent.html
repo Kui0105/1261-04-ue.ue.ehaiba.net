@@ -68,36 +68,15 @@
       <!-- 卡片数据：我的团队 / 累计消费金额 / 累计获得佣金 / 可提现佣金 / 已提现佣金 -->
       <div class="tiles" id="agentTiles" style="margin-bottom:18px"></div>
 
-      <!-- 可通明细（筛选 + 表格） -->
-      <div class="panel" style="padding:0;overflow:hidden;margin-bottom:18px">
-        <div style="padding:16px 22px 0"><h3 style="margin:0;margin-bottom:10px">可通明细</h3></div>
-        <div class="flow-filter-bar" style="padding:0 22px 12px">
-          <div class="filter-field" style="flex:1;min-width:140px">
-            <label>单号 / 用户名</label>
-            <input type="text" id="consKw" placeholder="输入关键词搜索…" oninput="applyConsFilter()" />
-          </div>
-          <div class="filter-field" style="min-width:130px">
-            <label>消费金额</label>
-            <input type="text" id="consAmt" placeholder="金额" oninput="applyConsFilter()" />
-          </div>
-          <div class="filter-field" style="min-width:150px">
-            <label>消费时间</label>
-            <div class="date-range">
-              <input type="date" id="consDateFrom" onchange="applyConsFilter()" />
-              <span class="date-sep">~</span>
-              <input type="date" id="consDateTo" onchange="applyConsFilter()" />
-            </div>
-          </div>
-        </div>
-        <div style="overflow-x:auto;padding:0 2px">
-          <table class="table flow-table">
-            <thead><tr><th>单号</th><th>用户名</th><th>消费金额</th><th>消费时间</th></tr></thead>
-            <tbody id="consBody"></tbody>
-          </table>
-        </div>
+      <!-- 功能入口：我的团队 / 推广链接 / 佣金提现 / 提现记录 -->
+      <div class="op-btn-row" style="margin-bottom:18px">
+        <button class="btn btn-outline btn-block" onclick="openTeamModal()">👥 我的团队</button>
+        <button class="btn btn-outline btn-block" onclick="openPromoModal()">🔗 推广链接</button>
+        <button class="btn btn-outline btn-block" onclick="openWithdrawModal()">💰 佣金提现</button>
+        <button class="btn btn-outline btn-block" onclick="openWdRecordModal()">📋 提现记录</button>
       </div>
 
-      <!-- 佣金明细 -->
+      <!-- 佣金明细（单一列表，合并消费与佣金信息，避免两个相似表格造成混淆） -->
       <div class="panel" style="padding:0;overflow:hidden;margin-bottom:18px">
         <div style="padding:16px 22px 0"><h3 style="margin:0;margin-bottom:4px">佣金明细</h3>
           <div style="font-size:13px;color:var(--text-2);margin-top:4px;display:flex;flex-wrap:wrap;gap:10px">
@@ -109,20 +88,30 @@
             <span class="comm-pill none">个人推广 0 佣金</span>
           </div>
         </div>
+        <div class="flow-filter-bar" style="padding:14px 22px 12px">
+          <div class="filter-field" style="flex:1;min-width:140px">
+            <label>单号 / 来源用户</label>
+            <input type="text" id="consKw" placeholder="输入关键词搜索…" oninput="applyConsFilter()" />
+          </div>
+          <div class="filter-field" style="min-width:130px">
+            <label>佣金金额</label>
+            <input type="text" id="consAmt" placeholder="金额" oninput="applyConsFilter()" />
+          </div>
+          <div class="filter-field" style="min-width:150px">
+            <label>产生时间</label>
+            <div class="date-range">
+              <input type="date" id="consDateFrom" onchange="applyConsFilter()" />
+              <span class="date-sep">~</span>
+              <input type="date" id="consDateTo" onchange="applyConsFilter()" />
+            </div>
+          </div>
+        </div>
         <div style="overflow-x:auto">
           <table class="table comm-table">
             <thead><tr><th>单号</th><th>来源用户</th><th>推荐类型</th><th>佣金金额</th><th>产生时间</th></tr></thead>
             <tbody id="commBody"></tbody>
           </table>
         </div>
-      </div>
-
-      <!-- 操作按钮行：我的团队 / 推广链接 / 佣金提现 / 提现记录 -->
-      <div class="op-btn-row" style="margin-bottom:18px">
-        <button class="btn btn-outline btn-block" onclick="openTeamModal()">👥 我的团队</button>
-        <button class="btn btn-outline btn-block" onclick="openPromoModal()">🔗 推广链接</button>
-        <button class="btn btn-outline btn-block" onclick="openWithdrawModal()">💰 佣金提现</button>
-        <button class="btn btn-outline btn-block" onclick="openWdRecordModal()">📋 提现记录</button>
       </div>
 
       <!-- 提现账户展示 -->
@@ -397,10 +386,7 @@
           '<div class="n">' + t.n + '</div><div class="l">' + t.l + (t.click ? ' <span class="tile-go">查看 ›</span>' : '') + '</div></div>';
       }).join("");
 
-      // ---- 可通明细 ----
-      renderConsDetails();
-
-      // ---- 佣金明细 ----
+      // ---- 佣金明细（单一列表，合并消费与佣金信息）----
       document.getElementById("directComm").textContent = App.fmtMoney(st.directComm);
       document.getElementById("indirectComm").textContent = App.fmtMoney(st.indirectComm);
       document.getElementById("directEnt").textContent = st.directEnt;
@@ -408,7 +394,8 @@
 
       document.getElementById("commBody").innerHTML = DB.COMMISSIONS.map(function (c) {
         var cls = c.type === "直推" ? "success" : "info";
-        return '<tr><td>' + c.id + '</td><td>' + App.escapeHtml(c.member) + '</td>' +
+        return '<tr data-id="' + c.id + '" data-member="' + App.escapeHtml(c.member).toLowerCase() + '" data-amt="' + c.amount + '" data-time="' + c.time + '">' +
+          '<td>' + c.id + '</td><td>' + App.escapeHtml(c.member) + '</td>' +
           '<td><span class="badge ' + cls + '">' + c.type + '</span></td>' +
           '<td class="amount">' + App.fmtMoney(c.amount) + '</td><td>' + c.time + '</td></tr>';
       }).join("");
@@ -431,32 +418,20 @@
         '</div>';
     }
 
-    /* ---------- 可通明细 ---------- */
-    function renderConsDetails() {
-      var list = DB.CONSUMPTION_DETAILS || [];
-      document.getElementById("consBody").innerHTML = list.map(function (c) {
-        return '<tr data-id="' + c.id + '" data-user="' + App.escapeHtml(c.user).toLowerCase() + '" data-amt="' + c.amount + '" data-time="' + c.time + '">' +
-          '<td class="mono-sm">' + c.id + '</td>' +
-          '<td>' + App.escapeHtml(c.user) + '</td>' +
-          '<td class="amount">' + App.fmtMoney(c.amount) + '</td>' +
-          '<td style="white-space:nowrap">' + c.time + '</td>' +
-        '</tr>';
-      }).join("");
-    }
-
+    /* ---------- 佣金明细筛选（作用于合并后的单一列表 commBody） ---------- */
     function applyConsFilter() {
       var kw = (document.getElementById("consKw").value || "").trim().toLowerCase();
       var amtStr = (document.getElementById("consAmt").value || "").trim();
       var dateFrom = document.getElementById("consDateFrom").value;
       var dateTo = document.getElementById("consDateTo").value;
       var amt = amtStr ? parseFloat(amtStr) : NaN;
-      var rows = document.querySelectorAll("#consBody tr");
+      var rows = document.querySelectorAll("#commBody tr");
       rows.forEach(function (row) {
         var show = true;
         if (kw) {
           var id = row.dataset.id.toLowerCase();
-          var user = row.dataset.user;
-          if (id.indexOf(kw) === -1 && user.indexOf(kw) === -1) show = false;
+          var member = row.dataset.member;
+          if (id.indexOf(kw) === -1 && member.indexOf(kw) === -1) show = false;
         }
         if (!isNaN(amt)) {
           var rowAmt = parseFloat(row.dataset.amt);
