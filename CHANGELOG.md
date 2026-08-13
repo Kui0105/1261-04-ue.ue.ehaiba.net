@@ -7,7 +7,7 @@
 
 ## 2026-08-13（迭代 57）订单详情页样式优化（3 项）
 
-1. **基本信息表格收窄**：`.detail-info-table` 加 `width:auto; max-width:560px;`，不再撑满整行容器，消除右侧大片空白；label 列 `white-space:nowrap` 防止换行。
+1. **基本信息改为多列网格（撑满横向）**：弃用原单列表格（右侧空白），新增 `.detail-info-grid`（`display:grid; grid-template-columns: repeat(3,1fr); gap:1px; background:#eef0f3` 的卡片化分格），每个字段为 `.info-item`（label + value 上下排布，白底、圆角 10px）；充值单 9 个字段、短信单 8 个字段（含「号码总数」）按 3 列铺满整行，消除空旷感；H5（≤520px）降为 `repeat(2,1fr)`。
 2. **卡片 PC 一行展示**：`#detailBody .tiles` 覆盖为 `grid-template-columns: repeat(5, 1fr)`，5 张统计卡片（号码总数/充值中/充值成功/充值失败/退款总额）在 PC 端单行排列；H5（≤520px）降为 `repeat(2, 1fr)` 自适应换行。
 3. **明细列表加分页**：新增 `detailPageSize=20`、`applyDetailPagination()`、`goDetailPage(p)`；筛选后自动重置到第 1 页并重新分页；导出仍输出全量数据（不受分页影响）。
 

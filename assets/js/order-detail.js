@@ -133,17 +133,17 @@ function renderRechargeDetail(o) {
 
   var html =
     '<div class="detail-section-title">基本信息</div>' +
-    '<table class="table detail-info-table"><tbody>' +
-      '<tr><td class="info-label">订单号</td><td><b>' + o.id + '</b></td></tr>' +
-      '<tr><td class="info-label">订单类型</td><td>话费充值</td></tr>' +
-      '<tr><td class="info-label">运营商</td><td>' + carrierObj.label + '</td></tr>' +
-      '<tr><td class="info-label">面额</td><td><b>' + o.face + ' 元</b></td></tr>' +
-      '<tr><td class="info-label">税费类型</td><td>' + getTaxLabel(o.tax) + '</td></tr>' +
-      '<tr><td class="info-label">单价</td><td class="amount">' + App.fmtMoney(unit) + '</td></tr>' +
-      '<tr><td class="info-label">总额</td><td class="amount">' + App.fmtMoney(totalAmt) + '</td></tr>' +
-      '<tr><td class="info-label">状态</td><td>' + orderStatusBadge(o.status) + '</td></tr>' +
-      '<tr><td class="info-label">提交时间</td><td>' + o.createdAt + '</td></tr>' +
-    '</tbody></table>' +
+    '<div class="detail-info-grid">' +
+      '<div class="info-item"><div class="info-label">订单号</div><div class="info-value"><b>' + o.id + '</b></div></div>' +
+      '<div class="info-item"><div class="info-label">订单类型</div><div class="info-value">话费充值</div></div>' +
+      '<div class="info-item"><div class="info-label">运营商</div><div class="info-value">' + carrierObj.label + '</div></div>' +
+      '<div class="info-item"><div class="info-label">面额</div><div class="info-value"><b>' + o.face + ' 元</b></div></div>' +
+      '<div class="info-item"><div class="info-label">税费类型</div><div class="info-value">' + getTaxLabel(o.tax) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">单价</div><div class="info-value amount">' + App.fmtMoney(unit) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">总额</div><div class="info-value amount">' + App.fmtMoney(totalAmt) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">状态</div><div class="info-value">' + orderStatusBadge(o.status) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">提交时间</div><div class="info-value">' + o.createdAt + '</div></div>' +
+    '</div>' +
 
     '<div class="tiles" style="margin-top:14px;margin-bottom:10px">' +
       '<div class="tile"><div class="n">' + o.count + '</div><div class="l">号码总数</div></div>' +
@@ -186,15 +186,16 @@ function renderSmsDetail(o, norm) {
 
   var html =
     '<div class="detail-section-title">基本信息</div>' +
-    '<table class="table detail-info-table"><tbody>' +
-      '<tr><td class="info-label">订单号</td><td><b>' + o.id + '</b></td></tr>' +
-      '<tr><td class="info-label">订单类型</td><td>短信群发</td></tr>' +
-      '<tr><td class="info-label">税费类型</td><td>' + getTaxLabel(o.tax) + '</td></tr>' +
-      '<tr><td class="info-label">单价</td><td class="amount">' + App.fmtMoney(o.unitPrice) + '/条</td></tr>' +
-      '<tr><td class="info-label">总额</td><td class="amount">' + App.fmtMoney(o.total) + '</td></tr>' +
-      '<tr><td class="info-label">状态</td><td>' + orderStatusBadge(o.status) + '</td></tr>' +
-      '<tr><td class="info-label">提交时间</td><td>' + o.createdAt + '</td></tr>' +
-    '</tbody></table>' +
+    '<div class="detail-info-grid">' +
+      '<div class="info-item"><div class="info-label">订单号</div><div class="info-value"><b>' + o.id + '</b></div></div>' +
+      '<div class="info-item"><div class="info-label">订单类型</div><div class="info-value">短信群发</div></div>' +
+      '<div class="info-item"><div class="info-label">号码总数</div><div class="info-value"><b>' + o.count + ' 条</b></div></div>' +
+      '<div class="info-item"><div class="info-label">税费类型</div><div class="info-value">' + getTaxLabel(o.tax) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">单价</div><div class="info-value amount">' + App.fmtMoney(o.unitPrice) + '/条</div></div>' +
+      '<div class="info-item"><div class="info-label">总额</div><div class="info-value amount">' + App.fmtMoney(o.total) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">状态</div><div class="info-value">' + orderStatusBadge(o.status) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">提交时间</div><div class="info-value">' + o.createdAt + '</div></div>' +
+    '</div>' +
     // 短信模板卡片：与「短信群发 → 选择模板」列表展示一致（模板名 + 短信签名 + 模板内容）
     (function () {
       var tp = (DB.SMS_TEMPLATES || []).find(function (x) { return x.name === o.template; });
