@@ -394,18 +394,23 @@
       var btn = document.getElementById(btnId);
       if (btn) btn.disabled = !chk.checked;
     }
-    ["agreementRowPwd", "agreementRowSms"].forEach(function (id) {
+    function setupAgreementRow(id) {
       var row = document.getElementById(id);
       if (!row) return;
+      var chk = row.querySelector('input[type="checkbox"]');
+      // 直接点击复选框：原生切换后同步按钮状态
+      chk.addEventListener("change", function () { syncAgreeBtn(row); });
+      // 点击文字区域（非链接、非复选框）：切换勾选并同步按钮
       row.addEventListener("click", function (e) {
         var tag = e.target.tagName.toLowerCase();
         if (tag === "a" || tag === "input") return;
-        var chk = row.querySelector('input[type="checkbox"]');
         chk.checked = !chk.checked;
         syncAgreeBtn(row);
       });
       syncAgreeBtn(row);
-    });
+    }
+    setupAgreementRow("agreementRowPwd");
+    setupAgreementRow("agreementRowSms");
 
     /* 初始化 */
     updateSendCodeBtn();

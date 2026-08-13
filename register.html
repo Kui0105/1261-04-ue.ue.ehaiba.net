@@ -454,14 +454,19 @@
     (function () {
       var row = document.getElementById("agreementRowReg");
       if (!row) return;
+      var chk = row.querySelector('input[type="checkbox"]');
+      // 直接点击复选框：原生切换后同步按钮状态
+      chk.addEventListener("change", function () {
+        document.getElementById("regSubmit").disabled = !chk.checked;
+      });
+      // 点击文字区域（非链接、非复选框）：切换勾选并同步按钮
       row.addEventListener("click", function (e) {
         var tag = e.target.tagName.toLowerCase();
         if (tag === "a" || tag === "input") return;
-        var chk = row.querySelector('input[type="checkbox"]');
         chk.checked = !chk.checked;
         document.getElementById("regSubmit").disabled = !chk.checked;
       });
-      document.getElementById("regSubmit").disabled = !row.querySelector('input[type="checkbox"]').checked;
+      document.getElementById("regSubmit").disabled = !chk.checked;
     })();
 
     /* 初始化 */
