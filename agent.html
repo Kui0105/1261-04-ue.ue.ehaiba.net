@@ -112,6 +112,8 @@
             <tbody id="commBody"></tbody>
           </table>
         </div>
+        <!-- 分页 -->
+        <div class="pagination" id="commPager"></div>
       </div>
 
     </div>
@@ -213,7 +215,7 @@
       <h3>提现记录<button class="x" onclick="closeWdRecordModal()">×</button></h3>
       <div style="overflow-x:auto">
         <table class="table wd-table">
-          <thead><tr><th>提现单号</th><th>提现金额</th><th>提现账户</th><th>提现状态</th><th>提现时间</th></tr></thead>
+          <thead><tr><th>提现单号</th><th>提现金额</th><th>提现账户</th><th>提现状态</th><th>打款凭证</th><th>提现时间</th></tr></thead>
           <tbody id="wdBody"></tbody>
         </table>
       </div>
@@ -239,6 +241,8 @@
     var TEAM_PAGE_SIZE = 10;
     var wdPageIndex = 1;
     var WD_PAGE_SIZE = 10;
+    var commPageIndex = 1;
+    var COMM_PAGE_SIZE = 20;
     var wdSentCode = "";
     var wdCodeTimer = null;
 
@@ -414,13 +418,8 @@
       document.getElementById("directEnt").textContent = st.directEnt;
       document.getElementById("indirectEnt").textContent = st.indirectEnt;
 
-      document.getElementById("commBody").innerHTML = DB.COMMISSIONS.map(function (c) {
-        var cls = c.type === "直推" ? "success" : "info";
-        return '<tr data-id="' + c.id + '" data-member="' + App.escapeHtml(c.member).toLowerCase() + '" data-amt="' + c.amount + '" data-time="' + c.time + '">' +
-          '<td>' + c.id + '</td><td>' + App.escapeHtml(c.member) + '</td>' +
-          '<td><span class="badge ' + cls + '">' + c.type + '</span></td>' +
-          '<td class="amount">' + App.fmtMoney(c.amount) + '</td><td>' + c.time + '</td></tr>';
-      }).join("");
+      document.getElementById("commBody").innerHTML = "";
+      renderCommList();
 
       // ---- 提现记录（内嵌表格） ----
       renderWdRecords();
@@ -437,29 +436,64 @@
         '</div>';
     }
 
-    /* ---------- 佣金明细筛选（作用于合并后的单一列表 commBody） ---------- */
-    function applyConsFilter() {
+    /* ---------- 佣金明细筛选 + 分页（数据驱动，作用于 DB.COMMISSIONS） ---------- */
+    function getFilteredCommissions() {
       var kw = (document.getElementById("consKw").value || "").trim().toLowerCase();
       var amtStr = (document.getElementById("consAmt").value || "").trim();
       var dateFrom = document.getElementById("consDateFrom").value;
       var dateTo = document.getElementById("consDateTo").value;
       var amt = amtStr ? parseFloat(amtStr) : NaN;
-      var rows = document.querySelectorAll("#commBody tr");
-      rows.forEach(function (row) {
-        var show = true;
+      return (DB.COMMISSIONS || []).filter(function (c) {
         if (kw) {
-          var id = row.dataset.id.toLowerCase();
-          var member = row.dataset.member;
-          if (id.indexOf(kw) === -1 && member.indexOf(kw) === -1) show = false;
+          var id = (c.id || "").toLowerCase();
+          var member = (c.member || "").toLowerCase();
+          if (id.indexOf(kw) === -1 && member.indexOf(kw) === -1) return false;
         }
-        if (!isNaN(amt)) {
-          var rowAmt = parseFloat(row.dataset.amt);
-          if (Math.abs(rowAmt - amt) > 0.01) show = false;
-        }
-        if (dateFrom && row.dataset.time < dateFrom) show = false;
-        if (dateTo && row.dataset.time > dateTo) show = false;
-        row.style.display = show ? "" : "none";
+        if (!isNaN(amt) && Math.abs(c.amount - amt) > 0.01) return false;
+        if (dateFrom && c.time < dateFrom) return false;
+        if (dateTo && c.time > dateTo) return false;
+        return true;
       });
+    }
+
+    function renderCommList() {
+      var list = getFilteredCommissions();
+      var tbody = document.getElementById("commBody");
+      var total = list.length;
+      var pages = Math.max(1, Math.ceil(total / COMM_PAGE_SIZE));
+      if (commPageIndex > pages) commPageIndex = pages;
+      var start = (commPageIndex - 1) * COMM_PAGE_SIZE;
+      var pageItems = list.slice(start, start + COMM_PAGE_SIZE);
+      tbody.innerHTML = pageItems.map(function (c) {
+        var cls = c.type === "直推" ? "success" : "info";
+        return '<tr>' +
+          '<td>' + c.id + '</td><td>' + App.escapeHtml(c.member) + '</td>' +
+          '<td><span class="badge ' + cls + '">' + c.type + '</span></td>' +
+          '<td class="amount">' + App.fmtMoney(c.amount) + '</td><td>' + c.time + '</td></tr>';
+      }).join("");
+      renderCommPager(total, pages);
+    }
+
+    function renderCommPager(total, pages) {
+      var pager = document.getElementById("commPager");
+      if (pages <= 1) {
+        pager.innerHTML = '<span class="pg-info">共 ' + total + ' 条</span>';
+        return;
+      }
+      var html = '<button class="pg-btn" ' + (commPageIndex <= 1 ? "disabled" : 'onclick="gotoCommPage(' + (commPageIndex - 1) + ')"') + '>上一页</button>';
+      html += '<span class="pg-info">第 ' + commPageIndex + ' / ' + pages + ' 页（共 ' + total + ' 条）</span>';
+      html += '<button class="pg-btn" ' + (commPageIndex >= pages ? "disabled" : 'onclick="gotoCommPage(' + (commPageIndex + 1) + ')"') + '>下一页</button>';
+      pager.innerHTML = html;
+    }
+
+    function gotoCommPage(p) {
+      commPageIndex = p;
+      renderCommList();
+    }
+
+    function applyConsFilter() {
+      commPageIndex = 1;
+      renderCommList();
     }
 
     /* ---------- 提现记录 ---------- */
@@ -485,15 +519,16 @@
         else if (w.status === "待打款") { badgeCls = "process"; badgeTxt = "待打款"; }
         else if (w.status === "待审核") { badgeCls = "pending"; badgeTxt = "待审核"; }
         else { badgeCls = "fail"; badgeTxt = "审核驳回"; }
-        var extra = (w.status === "已到账" && w.voucher)
-          ? ' <button class="wd-voucher-btn" onclick="openVoucher(\'' + w.id + '\')">查看凭证</button>'
-          : "";
         var reason = (w.status === "驳回" && w.rejectReason)
           ? '<div class="wd-reason">驳回原因：' + App.escapeHtml(w.rejectReason) + '</div>'
           : "";
+        var voucherCell = (w.status === "已到账" && w.voucher)
+          ? '<button class="wd-voucher-btn" onclick="openVoucher(\'' + w.id + '\')">查看凭证</button>'
+          : '<span class="wd-dash">—</span>';
         return '<tr><td class="mono-sm">' + w.id + '</td><td class="amount">' + App.fmtMoney(w.amount) + '</td>' +
           '<td>' + App.escapeHtml(w.bank + " " + (w.accountName || "")) + '</td>' +
-          '<td><span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' + extra + reason + '</td>' +
+          '<td><span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' + reason + '</td>' +
+          '<td>' + voucherCell + '</td>' +
           '<td>' + w.time + '</td></tr>';
       }).join("");
       renderWdPager(total, pages);
