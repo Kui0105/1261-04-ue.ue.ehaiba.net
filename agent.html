@@ -13,12 +13,6 @@
   <script>if (!App.requireLogin("agent")) document.write("");</script>
 
   <div class="container page">
-    <!-- 页面标题 -->
-    <div class="page-head">
-      <h1>代理申请</h1>
-      <p>用户提交代理商入驻申请，填写身份与资质信息。</p>
-    </div>
-
     <!-- ===== 申请表单（未提交 / 驳回后重新申请） ===== -->
     <div class="panel" id="applyPanel">
       <h3 style="margin-bottom:18px">申请表单</h3>
@@ -65,61 +59,51 @@
 
     <!-- ===== 已通过：代理商中心功能 ===== -->
     <div id="agentMain" style="display:none">
-      <!-- 推广数据 -->
+      <!-- 页面标题 -->
+      <div class="page-head">
+        <h1>代理中心</h1>
+        <p>用户申请升级为代理商，解锁推广链生成、下级（二级分销）管理、佣金明细查看与提现等分佣能力。申请时代理中心展示申请页。</p>
+      </div>
+
+      <!-- 卡片数据：我的团队 / 累计消费金额 / 累计获得佣金 / 可提现佣金 / 已提现佣金 -->
       <div class="tiles" id="agentTiles" style="margin-bottom:18px"></div>
 
-      <div class="grid-2">
-        <!-- 推广素材 -->
-        <div class="panel">
-          <h3>推广素材</h3>
-          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">
-            生成专属推广二维码 / 链接，客户通过链接注册将自动归属您名下（两级分销）。
-          </p>
-          <div class="qr"></div>
-          <div class="field" style="margin:14px 0 0">
-            <label>专属推广链接</label>
-            <input type="text" id="promoLink" readonly />
+      <!-- 可通明细（筛选 + 表格） -->
+      <div class="panel" style="padding:0;overflow:hidden;margin-bottom:18px">
+        <div style="padding:16px 22px 0"><h3 style="margin:0;margin-bottom:10px">可通明细</h3></div>
+        <div class="flow-filter-bar" style="padding:0 22px 12px">
+          <div class="filter-field" style="flex:1;min-width:140px">
+            <label>单号 / 用户名</label>
+            <input type="text" id="consKw" placeholder="输入关键词搜索…" oninput="applyConsFilter()" />
           </div>
-          <div style="display:flex;gap:10px;margin-top:12px">
-            <button class="btn btn-outline btn-sm" onclick="copyLink()">复制链接</button>
-            <button class="btn btn-ghost btn-sm" onclick="App.toast('已刷新推广二维码')">刷新二维码</button>
+          <div class="filter-field" style="min-width:130px">
+            <label>消费金额</label>
+            <input type="text" id="consAmt" placeholder="金额" oninput="applyConsFilter()" />
+          </div>
+          <div class="filter-field" style="min-width:150px">
+            <label>消费时间</label>
+            <div class="date-range">
+              <input type="date" id="consDateFrom" onchange="applyConsFilter()" />
+              <span class="date-sep">~</span>
+              <input type="date" id="consDateTo" onchange="applyConsFilter()" />
+            </div>
           </div>
         </div>
-
-        <!-- 提现申请 -->
-        <div class="panel">
-          <h3>提现申请</h3>
-          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">
-            佣金随时可申请结算，填写银行卡号后由平台财务人工审核批量转账。
-          </p>
-          <div class="field">
-            <label>提现金额（元）</label>
-            <input type="number" id="wdAmt" placeholder="可提现佣金内" />
-            <div class="hint" id="wdHint"></div>
-          </div>
-          <div class="field">
-            <label>开户银行</label>
-            <input type="text" id="wdBank" placeholder="如：招商银行" />
-          </div>
-          <div class="field">
-            <label>户名</label>
-            <input type="text" id="wdName" placeholder="银行卡开户人姓名" />
-          </div>
-          <div class="field">
-            <label>银行卡号</label>
-            <input type="text" id="wdCard" placeholder="收款银行卡号" />
-          </div>
-          <button class="btn btn-primary btn-block" onclick="applyWithdraw()">提交提现申请</button>
+        <div style="overflow-x:auto;padding:0 2px">
+          <table class="table flow-table">
+            <thead><tr><th>单号</th><th>用户名</th><th>消费金额</th><th>消费时间</th></tr></thead>
+            <tbody id="consBody"></tbody>
+          </table>
         </div>
       </div>
 
       <!-- 佣金明细 -->
-      <div class="panel" style="padding:0;overflow:hidden;margin-top:18px">
-        <div style="padding:18px 22px 0"><h3 style="margin:0">佣金明细</h3>
-          <div style="font-size:13px;color:var(--text-2);margin-top:4px">
+      <div class="panel" style="padding:0;overflow:hidden;margin-bottom:18px">
+        <div style="padding:16px 22px 0"><h3 style="margin:0;margin-bottom:4px">佣金明细</h3>
+          <div style="font-size:13px;color:var(--text-2);margin-top:4px;display:flex;flex-wrap:wrap;gap:10px">
             两级分销：<b style="color:var(--primary)">直推 3‰</b>、<b style="color:var(--success)">间推 2‰</b>；仅推广的<b>企业用户</b>产生佣金，个人用户推广<b>无佣金</b>。
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
             <span class="comm-pill direct">直推佣金 <b id="directComm">¥0</b>（企业直推 <span id="directEnt">0</span> 人）</span>
             <span class="comm-pill indirect">间推佣金 <b id="indirectComm">¥0</b>（企业间推 <span id="indirectEnt">0</span> 人）</span>
             <span class="comm-pill none">个人推广 0 佣金</span>
@@ -127,20 +111,25 @@
         </div>
         <div style="overflow-x:auto">
           <table class="table comm-table">
-            <thead><tr><th>明细号</th><th>来源成员</th><th>类型</th><th>成员类型</th><th>佣金金额</th><th>产生时间</th></tr></thead>
+            <thead><tr><th>单号</th><th>来源用户</th><th>推荐类型</th><th>佣金金额</th><th>产生时间</th></tr></thead>
             <tbody id="commBody"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- 提现记录 -->
-      <div class="panel" style="padding:0;overflow:hidden">
-        <div style="padding:18px 22px 0"><h3 style="margin:0">提现记录</h3></div>
-        <div style="overflow-x:auto">
-          <table class="table wd-table">
-            <thead><tr><th>提现单号</th><th>金额</th><th>收款账户</th><th>状态</th><th>时间</th></tr></thead>
-            <tbody id="wdBody"></tbody>
-          </table>
+      <!-- 操作按钮行：我的团队 / 推广链接 / 佣金提现 / 提现记录 -->
+      <div class="op-btn-row" style="margin-bottom:18px">
+        <button class="btn btn-outline btn-block" onclick="openTeamModal()">👥 我的团队</button>
+        <button class="btn btn-outline btn-block" onclick="openPromoModal()">🔗 推广链接</button>
+        <button class="btn btn-outline btn-block" onclick="openWithdrawModal()">💰 佣金提现</button>
+        <button class="btn btn-outline btn-block" onclick="openWdRecordModal()">📋 提现记录</button>
+      </div>
+
+      <!-- 提现账户展示 -->
+      <div class="panel" id="wdAccountPanel" style="margin-bottom:18px">
+        <h3 style="margin:0 0 12px">提现账户</h3>
+        <div id="wdAccountInfo" style="font-size:14px;color:var(--text-2)">
+          暂无提现账户信息，请在「佣金提现」中填写并提交一次后自动记录。
         </div>
       </div>
     </div>
@@ -157,24 +146,90 @@
     </div>
   </div>
 
-  <!-- ========== 直推 / 间推成员明细弹窗 ========== -->
-  <div class="modal-mask" id="referralMask">
-    <div class="modal" style="max-width:560px">
-      <h3><span id="referralTitle">推广成员</span><button class="x" onclick="closeReferral()">×</button></h3>
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:12px" id="referralSub"></div>
+  <!-- ========== 我的团队弹窗（TAB切换 直推/间推） ========== -->
+  <div class="modal-mask" id="teamMask">
+    <div class="modal" style="max-width:720px">
+      <h3>我的团队<button class="x" onclick="closeTeamModal()">×</button></h3>
+      <div class="team-tabs" id="teamTabs">
+        <button class="team-tab active" data-tab="direct" onclick="switchTeamTab('direct')">直推 TAB</button>
+        <button class="team-tab" data-tab="indirect" onclick="switchTeamTab('indirect')">间推 TAB</button>
+      </div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:12px" id="teamSub"></div>
       <div style="overflow-x:auto">
-        <table class="table" style="min-width:520px">
-          <thead><tr id="referralHead"></tr></thead>
-          <tbody id="referralBody"></tbody>
+        <table class="table" style="min-width:560px">
+          <thead><tr id="teamHead"><th>昵称</th><th>手机号</th><th>推荐类型</th><th>上级用户</th><th>获得佣金</th><th>注册时间</th></tr></thead>
+          <tbody id="teamBody"></tbody>
         </table>
       </div>
-      <div id="referralEmpty" style="text-align:center;color:var(--text-2);padding:24px 0;display:none">暂无成员数据</div>
+      <div id="teamEmpty" style="text-align:center;color:var(--text-2);padding:24px 0;display:none">暂无成员数据</div>
+    </div>
+  </div>
+
+  <!-- ========== 推广链接弹窗 ========== -->
+  <div class="modal-mask" id="promoMask">
+    <div class="modal promo-modal" style="max-width:480px;text-align:center">
+      <h3 style="justify-content:center">推广链接<button class="x" onclick="closePromoModal()">×</button></h3>
+      <div class="wechat-body" style="padding:20px 0">
+        <div class="wechat-qr" id="promoQr"></div>
+        <p style="font-size:13px;color:var(--text-2);margin:12px 0 6px">专属推广二维码</p>
+        <p class="wechat-amount" id="promoLinkDisplay" style="color:var(--primary);word-break:break-all;font-weight:600"></p>
+        <p class="wechat-tip">客户通过此链接/二维码注册将永久绑定为您名下的下级成员</p>
+      </div>
+      <div style="display:flex;gap:10px;padding:0 24px 24px;justify-content:center">
+        <button class="btn btn-outline btn-sm" onclick="copyPromoQr()">复制二维码</button>
+        <button class="btn btn-primary btn-sm" onclick="copyPromoLink()">复制链接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 佣金提现弹窗 ========== -->
+  <div class="modal-mask" id="withdrawMask">
+    <div class="modal" style="max-width:500px">
+      <h3>佣金提现<button class="x" onclick="closeWithdrawModal()">×</button></h3>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.7">
+        佣金随时可申请结算，填写银行卡号后由平台财务人工审核批量转账。
+      </div>
+      <div class="wd-limit-bar" id="wdLimitBar"></div>
+      <div class="apply-form" style="margin-top:14px">
+        <div class="field">
+          <label>提现金额（元）</label>
+          <input type="number" id="wdAmt" placeholder="请输入提现金额" />
+        </div>
+        <div class="field">
+          <label>开户银行</label>
+          <input type="text" id="wdBank" placeholder="如：招商银行" />
+        </div>
+        <div class="field">
+          <label>户名</label>
+          <input type="text" id="wdName" placeholder="银行卡开户人姓名" />
+        </div>
+        <div class="field">
+          <label>银行卡号</label>
+          <input type="text" id="wdCard" placeholder="收款银行卡号" />
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="doWithdrawSubmit()">提交提现申请</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 提现记录弹窗 ========== -->
+  <div class="modal-mask" id="wdRecordMask">
+    <div class="modal" style="max-width:640px">
+      <h3>提现记录<button class="x" onclick="closeWdRecordModal()">×</button></h3>
+      <div style="overflow-x:auto">
+        <table class="table wd-table">
+          <thead><tr><th>提现单号</th><th>提现金额</th><th>提现账户</th><th>提现状态</th><th>提现时间</th></tr></thead>
+          <tbody id="wdBody"></tbody>
+        </table>
+      </div>
+      <div id="wdRecordEmpty" style="text-align:center;color:var(--text-2);padding:24px 0;display:none">暂无提现记录</div>
     </div>
   </div>
 
   <script>
     var DB = App.DB;
     var s = App.getSession() || {};
+    var currentTeamTab = "direct";
 
     /* ========== 协议内容 ========== */
     var AGREEMENT_TEXT =
@@ -201,27 +256,15 @@
 
     /* ========== 初始化：根据当前状态渲染页面 ========== */
     (function initAgentPage() {
-      // 渲染协议内容
       document.getElementById("agreementBody").innerHTML = AGREEMENT_TEXT;
-
-      var appStatus = s.agentStatus || ""; // "" | "pending" | "approved" | "rejected"
-
-      if (appStatus === "approved") {
-        // 已通过 → 显示代理商中心
-        showAgentCenter();
-      } else if (appStatus === "pending") {
-        // 审核中 → 显示审核中状态
-        showReviewStatus("pending");
-      } else if (appStatus === "rejected") {
-        // 已驳回 → 显示驳回状态 + 原因 + 重新申请
-        showReviewStatus("rejected", s.agentRejectReason || "您的资质不符合代理商入驻要求，请完善资料后重新申请。");
-      } else {
-        // 未申请 → 显示申请表单
-        showApplyForm();
-      }
+      var appStatus = s.agentStatus || "";
+      if (appStatus === "approved") { showAgentCenter(); }
+      else if (appStatus === "pending") { showReviewStatus("pending"); }
+      else if (appStatus === "rejected") { showReviewStatus("rejected", s.agentRejectReason || "您的资质不符合代理商入驻要求，请完善资料后重新申请。"); }
+      else { showApplyForm(); }
     })();
 
-    /* ========== 申请表单 ========== */
+    /* ========== 申请表单（保持不变） ========== */
     function showApplyForm() {
       document.getElementById("applyPanel").style.display = "";
       document.getElementById("reviewPanel").style.display = "none";
@@ -229,45 +272,30 @@
     }
 
     function submitApplication() {
-      // 校验表单
       var realName = document.getElementById("realName").value.trim();
       var contactPhone = document.getElementById("contactPhone").value.trim();
       var contactEmail = document.getElementById("contactEmail").value.trim();
       var agreeChecked = document.getElementById("agreeCheck").checked;
-
       if (!realName) { App.toast("请输入真实姓名"); return; }
       if (!contactPhone) { App.toast("请输入联系电话"); return; }
       if (!/^1\d{10}$/.test(contactPhone)) { App.toast("请输入正确的手机号码"); return; }
       if (!contactEmail) { App.toast("请输入联系邮箱"); return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { App.toast("请输入正确的邮箱地址"); return; }
       if (!agreeChecked) { App.toast("请先勾选同意《代理商合作协议》"); return; }
-
-      // 提交 → 进入审核中状态
       s.agentStatus = "pending";
       s.agentApplyData = { realName: realName, contactPhone: contactPhone, contactEmail: contactEmail };
       DB.setSession(s);
-
-      // 切换到审核中 UI
       document.getElementById("applyPanel").style.display = "none";
       document.getElementById("reviewPanel").style.display = "";
       showReviewStatus("pending");
-
-      // 模拟 3 秒审核（按电话号码判定结果）
-      setTimeout(function () {
-        doReviewResult(contactPhone);
-      }, 3000);
+      setTimeout(function () { doReviewResult(contactPhone); }, 3000);
     }
 
-    /* ========== 营业执照上传（原型模拟） ========== */
     function handleLicenseFile(event) {
       var file = event.target.files[0];
       if (!file) return;
       var name = file.name.toLowerCase();
-      if (!name.match(/\.(jpg|jpeg|png)$/)) {
-        App.toast("仅支持 JPG / PNG 格式图片");
-        return;
-      }
-      // 原型：模拟上传成功
+      if (!name.match(/\.(jpg|jpeg|png)$/)) { App.toast("仅支持 JPG / PNG 格式图片"); return; }
       var uploadEl = document.getElementById("licenseUpload");
       uploadEl.classList.add("has-file");
       document.getElementById("licenseIcon").textContent = "✅";
@@ -276,36 +304,23 @@
       App.toast("营业执照图片已上传（原型演示）");
     }
 
-    /* ========== 审核结果处理 ========== */
     function doReviewResult(phone) {
-      // 规则：13100000001 → 通过；13100000002 → 驳回
       if (phone === "13100000001") {
-        // 通过
-        s.agentStatus = "approved";
-        s.isAgent = true;
-        delete s.agentRejectReason;
+        s.agentStatus = "approved"; s.isAgent = true; delete s.agentRejectReason;
         DB.setSession(s);
-
-        // 切换到代理商中心
         document.getElementById("reviewPanel").style.display = "none";
         showAgentCenter();
         App.toast("恭喜！您的代理商申请已审核通过");
       } else if (phone === "13100000002") {
-        // 驳回
         s.agentStatus = "rejected";
         s.agentRejectReason =
           "经平台审核，您提交的联系方式关联账户存在异常交易记录，暂不符合代理商入驻要求。" +
           "建议：完善企业资质材料（如提供加盖公章的营业执照扫描件），或等待 30 天后重新申请。";
         delete s.isAgent;
         DB.setSession(s);
-
-        // 显示驳回状态
         showReviewStatus("rejected", s.agentRejectReason);
       } else {
-        // 其他号码默认通过（原型友好）
-        s.agentStatus = "approved";
-        s.isAgent = true;
-        delete s.agentRejectReason;
+        s.agentStatus = "approved"; s.isAgent = true; delete s.agentRejectReason;
         DB.setSession(s);
         document.getElementById("reviewPanel").style.display = "none";
         showAgentCenter();
@@ -313,15 +328,12 @@
       }
     }
 
-    /* ========== 审核状态展示 ========== */
     function showReviewStatus(status, rejectReason) {
-      // 仅展示审核状态区，隐藏申请表单与代理商中心（避免切换页面回来时两者叠加显示）
       document.getElementById("applyPanel").style.display = "none";
       document.getElementById("agentMain").style.display = "none";
       var panel = document.getElementById("reviewPanel");
       var content = document.getElementById("reviewStatusContent");
       panel.style.display = "";
-
       if (status === "pending") {
         content.innerHTML =
           '<div class="review-status-icon review-spinning">⏳</div>' +
@@ -343,46 +355,40 @@
       }
     }
 
-    /* ========== 重新申请 ========== */
     function reapply() {
-      // 保留 agentApplyData 用于回填；清理审核状态回到表单
       var saved = s.agentApplyData || {};
-      delete s.agentStatus;
-      delete s.agentRejectReason;
-      delete s.isAgent;
+      delete s.agentStatus; delete s.agentRejectReason; delete s.isAgent;
       DB.setSession(s);
-
-      // 回填驳回时填写的表单内容
       document.getElementById("realName").value = saved.realName || "";
       document.getElementById("contactPhone").value = saved.contactPhone || "";
       document.getElementById("contactEmail").value = saved.contactEmail || "";
-      document.getElementById("agreeCheck").checked = true; // 之前已同意，恢复勾选便于直接重提
-
-      // 重置营业执照上传区（文件无法程序回填，恢复默认态）
+      document.getElementById("agreeCheck").checked = true;
       var uploadEl = document.getElementById("licenseUpload");
       uploadEl.classList.remove("has-file");
       document.getElementById("licenseIcon").textContent = "📄";
       document.getElementById("licenseText").innerHTML =
         '点击上传营业执照图片<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>';
-
       showApplyForm();
       App.toast("已恢复驳回前填写的内容，修改后可重新提交");
     }
 
-    /* ========== 代理商中心（原有逻辑保留） ========== */
+    /* ========== 代理商中心（全面重构） ========== */
     function showAgentCenter() {
       document.getElementById("applyPanel").style.display = "none";
       document.getElementById("reviewPanel").style.display = "none";
       document.getElementById("agentMain").style.display = "";
-      renderAgent();
+      renderAgentCenter();
     }
 
-    function renderAgent() {
+    function renderAgentCenter() {
       var st = DB.agentStats();
+
+      // ---- 5 张卡片 ----
+      var teamCount = st.direct + st.indirect;
       document.getElementById("agentTiles").innerHTML = [
-        { n: st.direct, l: "直推人数", c: "blue", click: "openReferral('direct')" },
-        { n: st.indirect, l: "间推人数", c: "green", click: "openReferral('indirect')" },
-        { n: App.fmtMoney(st.totalRecharge), l: "累计充值金额", c: "" },
+        { n: teamCount + " 人", l: "我的团队", c: "blue", click: "openTeamModal()" },
+        { n: App.fmtMoney(st.totalRecharge), l: "累计消费金额", c: "" },
+        { n: App.fmtMoney(st.directComm + st.indirectComm), l: "累计获得佣金", c: "" },
         { n: App.fmtMoney(st.withdrawable), l: "可提现佣金", c: "green" },
         { n: App.fmtMoney(st.withdrawn), l: "已提现佣金", c: "amber" }
       ].map(function (t) {
@@ -391,8 +397,10 @@
           '<div class="n">' + t.n + '</div><div class="l">' + t.l + (t.click ? ' <span class="tile-go">查看 ›</span>' : '') + '</div></div>';
       }).join("");
 
-      document.getElementById("promoLink").value = "https://ehaiba.com/reg?invite=" + (s.account || "agent") + "01";
-      document.getElementById("wdHint").textContent = "当前可提现：" + App.fmtMoney(st.withdrawable);
+      // ---- 可通明细 ----
+      renderConsDetails();
+
+      // ---- 佣金明细 ----
       document.getElementById("directComm").textContent = App.fmtMoney(st.directComm);
       document.getElementById("indirectComm").textContent = App.fmtMoney(st.indirectComm);
       document.getElementById("directEnt").textContent = st.directEnt;
@@ -402,84 +410,225 @@
         var cls = c.type === "直推" ? "success" : "info";
         return '<tr><td>' + c.id + '</td><td>' + App.escapeHtml(c.member) + '</td>' +
           '<td><span class="badge ' + cls + '">' + c.type + '</span></td>' +
-          '<td><span class="badge info">企业</span></td>' +
           '<td class="amount">' + App.fmtMoney(c.amount) + '</td><td>' + c.time + '</td></tr>';
       }).join("");
 
-      document.getElementById("wdBody").innerHTML = DB.WITHDRAWS.map(function (w) {
+      // ---- 提现记录（内嵌表格） ----
+      renderWdRecords();
+
+      // ---- 提现账户展示 ----
+      renderWdAccount();
+
+      // ---- 提现限额提示条（供提现弹窗使用） ----
+      var wdMin = 100, wdFeeRate = 0, wdMaxSingle = 50000, wdMaxDaily = 200000;
+      document.getElementById("wdLimitBar").innerHTML =
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text-2);background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:12px 16px;line-height:1.8">' +
+          '<span>可提现：<b style="color:var(--success)">' + App.fmtMoney(st.withdrawable) + '</b></span>' +
+          '<span>最低提现：<b>' + App.fmtMoney(wdMin) + '</b></span>' +
+          '<span>手续费：<b>' + (wdFeeRate * 100) + '%</b></span>' +
+          '<span>单笔最高：<b>' + App.fmtMoney(wdMaxSingle) + '</b></span>' +
+          '<span>日累计最高：<b>' + App.fmtMoney(wdMaxDaily) + '</b></span>' +
+        '</div>';
+    }
+
+    /* ---------- 可通明细 ---------- */
+    function renderConsDetails() {
+      var list = DB.CONSUMPTION_DETAILS || [];
+      document.getElementById("consBody").innerHTML = list.map(function (c) {
+        return '<tr data-id="' + c.id + '" data-user="' + App.escapeHtml(c.user).toLowerCase() + '" data-amt="' + c.amount + '" data-time="' + c.time + '">' +
+          '<td class="mono-sm">' + c.id + '</td>' +
+          '<td>' + App.escapeHtml(c.user) + '</td>' +
+          '<td class="amount">' + App.fmtMoney(c.amount) + '</td>' +
+          '<td style="white-space:nowrap">' + c.time + '</td>' +
+        '</tr>';
+      }).join("");
+    }
+
+    function applyConsFilter() {
+      var kw = (document.getElementById("consKw").value || "").trim().toLowerCase();
+      var amtStr = (document.getElementById("consAmt").value || "").trim();
+      var dateFrom = document.getElementById("consDateFrom").value;
+      var dateTo = document.getElementById("consDateTo").value;
+      var amt = amtStr ? parseFloat(amtStr) : NaN;
+      var rows = document.querySelectorAll("#consBody tr");
+      rows.forEach(function (row) {
+        var show = true;
+        if (kw) {
+          var id = row.dataset.id.toLowerCase();
+          var user = row.dataset.user;
+          if (id.indexOf(kw) === -1 && user.indexOf(kw) === -1) show = false;
+        }
+        if (!isNaN(amt)) {
+          var rowAmt = parseFloat(row.dataset.amt);
+          if (Math.abs(rowAmt - amt) > 0.01) show = false;
+        }
+        if (dateFrom && row.dataset.time < dateFrom) show = false;
+        if (dateTo && row.dataset.time > dateTo) show = false;
+        row.style.display = show ? "" : "none";
+      });
+    }
+
+    /* ---------- 提现记录 ---------- */
+    function renderWdRecords() {
+      var list = DB.WITHDRAWS || [];
+      var tbody = document.getElementById("wdBody");
+      var empty = document.getElementById("wdRecordEmpty");
+      if (!list.length) {
+        tbody.innerHTML = ""; empty.style.display = ""; return;
+      }
+      empty.style.display = "none";
+      tbody.innerHTML = list.map(function (w) {
         var done = w.status === "已到账";
         var cls = done ? "success" : "process";
-        var txt = done ? "提现成功" : "审核中";
-        return '<tr><td>' + w.id + '</td><td class="amount">' + App.fmtMoney(w.amount) + '</td>' +
-          '<td>' + w.bank + '</td><td><span class="badge ' + cls + '">' + txt + '</span></td>' +
+        var txt = done ? "打款成功" : "待审核";
+        var statusExtra = w.status === "驳回" ? "审核驳回（" + (w.rejectReason || "原因未知") + "）" : txt;
+        var statusCls = w.status === "驳回" ? "fail" : cls;
+        return '<tr><td class="mono-sm">' + w.id + '</td><td class="amount">' + App.fmtMoney(w.amount) + '</td>' +
+          '<td>' + App.escapeHtml(w.bank + " " + (w.accountName || "")) + '</td>' +
+          '<td><span class="badge ' + statusCls + '">' + statusExtra + '</span></td>' +
           '<td>' + w.time + '</td></tr>';
       }).join("");
     }
 
-    function copyLink() {
-      var link = document.getElementById("promoLink").value;
-      navigator.clipboard && navigator.clipboard.writeText(link);
-      App.toast("推广链接已复制");
+    /* ---------- 提现账户展示 ---------- */
+    function renderWdAccount() {
+      var info = s.wdAccount || null;
+      var el = document.getElementById("wdAccountInfo");
+      if (!info) {
+        el.innerHTML = '<span style="color:var(--text-2)">暂无提现账户信息，请在「佣金提现」中填写并提交一次后自动记录。</span>';
+        return;
+      }
+      el.innerHTML =
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:14px">' +
+          '<div><span style="color:var(--text-2)">户名</span><br><b>' + App.escapeHtml(info.name) + '</b></div>' +
+          '<div><span style="color:var(--text-2)">银行名称</span><br><b>' + App.escapeHtml(info.bank) + '</b></div>' +
+          '<div><span style="color:var(--text-2)">收款账号</span><br><b class="mono">' + App.escapeHtml(info.card) + '</b></div>' +
+        '</div>';
     }
 
-    /* ---------- 直推 / 间推成员明细 ---------- */
-    function openReferral(kind) {
-      var isDirect = kind === "direct";
+    /* ---------- 操作：我的团队（TAB 弹窗） ---------- */
+    function openTeamModal() {
+      currentTeamTab = "direct";
+      switchTeamTab("direct");
+      document.getElementById("teamMask").classList.add("show");
+    }
+    function closeTeamModal() { document.getElementById("teamMask").classList.remove("show"); }
+
+    function switchTeamTab(tab) {
+      currentTeamTab = tab;
+      // 更新 TAB 样式
+      document.querySelectorAll(".team-tab").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.tab === tab);
+      });
+      var isDirect = tab === "direct";
       var list = isDirect ? DB.AGENT_DIRECT : DB.AGENT_INDIRECT;
       var rate = isDirect ? DB.AGENT_COMMISSION.directRate : DB.AGENT_COMMISSION.indirectRate;
-      var title = isDirect ? "直推成员（一级下线）" : "间推成员（二级下线）";
-      document.getElementById("referralTitle").textContent = title;
-      document.getElementById("referralSub").textContent = isDirect
-        ? "由您直接推广注册的下级客户，共 " + list.length + " 人。直推佣金 3‰，仅企业用户产生佣金，个人用户无佣金。"
-        : "由您的直推客户再次推广注册的下级客户，共 " + list.length + " 人。间推佣金 2‰，仅企业用户产生佣金，个人用户无佣金。";
-      document.getElementById("referralHead").innerHTML = isDirect
-        ? "<th>昵称</th><th>账号</th><th>类型</th><th>手机号</th><th>佣金</th><th>注册时间</th>"
-        : "<th>昵称</th><th>账号</th><th>类型</th><th>手机号</th><th>上级（直推）</th><th>佣金</th><th>注册时间</th>";
+      document.getElementById("teamSub").textContent = isDirect
+        ? "由您直接推广注册的下级客户，共 " + list.length + " 人。"
+        : "由您的直推客户再次推广注册的下级客户，共 " + list.length + " 人。";
 
-      document.getElementById("referralBody").innerHTML = list.map(function (m) {
+      document.getElementById("teamBody").innerHTML = list.map(function (m) {
         var typeCls = m.type === "企业" ? "info" : "gray";
         var comm = m.type === "企业"
           ? '<b style="color:var(--success)">' + App.fmtMoney(Math.round(m.recharge * rate * 100) / 100) + "</b>"
           : '<span class="muted">无佣金</span>';
         return "<tr>" +
           "<td>" + App.escapeHtml(m.name) + "</td>" +
-          "<td>" + App.escapeHtml(m.account) + "</td>" +
-          '<td><span class="badge ' + typeCls + '">' + m.type + "</span></td>" +
           '<td class="mono">' + App.escapeHtml(m.phone) + "</td>" +
-          (isDirect ? "" : "<td>" + App.escapeHtml(m.via) + "</td>") +
+          '<td><span class="badge ' + typeCls + '">' + (isDirect ? "直推" : "间推") + "</span></td>" +
+          "<td>" + (isDirect ? "—" : App.escapeHtml(m.via)) + "</td>" +
           "<td>" + comm + "</td>" +
           "<td>" + m.joinedAt + "</td>" +
         "</tr>";
       }).join("");
-      document.getElementById("referralEmpty").style.display = list.length ? "none" : "";
-      document.getElementById("referralMask").classList.add("show");
+      document.getElementById("teamEmpty").style.display = list.length ? "none" : "";
     }
-    function closeReferral() { document.getElementById("referralMask").classList.remove("show"); }
 
-    function applyWithdraw() {
+    /* ---------- 操作：推广链接弹窗 ---------- */
+    function openPromoModal() {
+      var link = "https://ehaiba.com/reg?invite=" + (s.account || "agent") + "01";
+      document.getElementById("promoLinkDisplay").textContent = link;
+      document.getElementById("promoQr").innerHTML = buildQrSvg("promo" + Date.now());
+      document.getElementById("promoMask").classList.add("show");
+    }
+    function closePromoModal() { document.getElementById("promoMask").classList.remove("show"); }
+    function copyPromoLink() {
+      var link = document.getElementById("promoLinkDisplay").textContent;
+      navigator.clipboard && navigator.clipboard.writeText(link);
+      App.toast("推广链接已复制");
+    }
+    function copyPromoQr() {
+      App.toast("二维码已复制到剪贴板（原型演示）");
+    }
+
+    /* ---------- 操作：佣金提现弹窗 ---------- */
+    function openWithdrawModal() {
+      // 预填上次填写的账户信息
+      var acc = s.wdAccount || {};
+      document.getElementById("wdBank").value = acc.bank || "";
+      document.getElementById("wdName").value = acc.name || "";
+      document.getElementById("wdCard").value = acc.card || "";
+      document.getElementById("wdAmt").value = "";
+      document.getElementById("withdrawMask").classList.add("show");
+    }
+    function closeWithdrawModal() { document.getElementById("withdrawMask").classList.remove("show"); }
+
+    function doWithdrawSubmit() {
       var amt = Number(document.getElementById("wdAmt").value);
       var bank = document.getElementById("wdBank").value.trim();
       var name = document.getElementById("wdName").value.trim();
       var card = document.getElementById("wdCard").value.trim();
       var st = DB.agentStats();
       if (!amt || amt <= 0) { App.toast("请输入提现金额"); return; }
+      if (amt < 100) { App.toast("最低提现金额为 ¥100"); return; }
       if (amt > st.withdrawable) { App.toast("超过可提现佣金"); return; }
-      if (!bank || !name || !card) { App.toast("请填写完整的银行卡信息（银行、户名、卡号）"); return; }
+      if (amt > 50000) { App.toast("单笔最高提现 ¥50,000"); return; }
+      if (!bank || !name || !card) { App.toast("请填写完整的银行卡信息"); return; }
       if (!confirm("确认提交提现申请？\n提现金额：" + App.fmtMoney(amt) + "\n收款：" + bank + " " + name + " " + card + "\n提交后由平台财务人工审核。")) return;
+
+      // 记录提现账户（下次预填）
+      s.wdAccount = { bank: bank, name: name, card: card };
+      DB.setSession(s);
+
       App.toast("提现申请已提交，财务将人工审核");
-      document.getElementById("wdAmt").value = "";
-      document.getElementById("wdBank").value = "";
-      document.getElementById("wdName").value = "";
-      document.getElementById("wdCard").value = "";
+      closeWithdrawModal();
+      // 刷新提现账户展示和记录
+      renderWdAccount();
+      renderWdRecords();
     }
 
-    /* ========== 代理协议弹窗 ========== */
-    function openAgreement() {
-      document.getElementById("agreementMask").classList.add("show");
+    /* ---------- 操作：提现记录弹窗 ---------- */
+    function openWdRecordModal() {
+      renderWdRecords();
+      document.getElementById("wdRecordMask").classList.add("show");
     }
-    function closeAgreement() {
-      document.getElementById("agreementMask").classList.remove("show");
+    function closeWdRecordModal() { document.getElementById("wdRecordMask").classList.remove("show"); }
+
+    /* ========== 二维码 SVG（复用） ========== */
+    function buildQrSvg(seedStr) {
+      var n = 25, cell = 8, size = n * cell;
+      var seed = 0;
+      for (var i = 0; i < seedStr.length; i++) seed = (seed * 31 + seedStr.charCodeAt(i)) % 100000;
+      function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+      var rects = "";
+      function module(x, y) { rects += '<rect x="' + (x * cell) + '" y="' + (y * cell) + '" width="' + cell + '" height="' + cell + '"/>'; }
+      function finder(ox, oy) {
+        rects += '<rect x="' + (ox * cell) + '" y="' + (oy * cell) + '" width="' + (7 * cell) + '" height="' + (7 * cell) + '"/>';
+        rects += '<rect x="' + ((ox + 1) * cell) + '" y="' + ((oy + 1) * cell) + '" width="' + (5 * cell) + '" height="' + (5 * cell) + '" fill="#fff"/>';
+        rects += '<rect x="' + ((ox + 2) * cell) + '" y="' + ((oy + 2) * cell) + '" width="' + (3 * cell) + '" height="' + (3 * cell) + '"/>';
+      }
+      for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) {
+        var inFinder = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+        if (inFinder) continue;
+        if (rnd() > 0.5) module(x, y);
+      }
+      finder(0, 0); finder(n - 7, 0); finder(0, n - 7);
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '"><rect width="' + size + '" height="' + size + '" fill="#fff"/><g fill="#111">' + rects + '</g></svg>';
     }
+
+    /* ========== 协议弹窗 ========== */
+    function openAgreement() { document.getElementById("agreementMask").classList.add("show"); }
+    function closeAgreement() { document.getElementById("agreementMask").classList.remove("show"); }
     function checkAgreeAndClose() {
       document.getElementById("agreeCheck").checked = true;
       closeAgreement();

@@ -205,7 +205,20 @@ window.MockDB = (function () {
 
   // 提现记录
   const WITHDRAWS = [
-    { id: "W2026071501", amount: 320.00, bank: "招商银行 6225****8831", status: "已到账", time: "2026-07-15 16:20" }
+    { id: "W2026071501", amount: 320.00, bank: "招商银行 6225****8831", accountName: "张三", status: "已到账", time: "2026-07-15 16:20" },
+    { id: "W2026080102", amount: 1000.00, bank: "建设银行 4367****1234", accountName: "张三", status: "待审核", time: "2026-08-01 10:30" }
+  ];
+
+  // 可通明细（代理商中心展示：下级用户的消费订单记录）
+  const CONSUMPTION_DETAILS = [
+    { id: "CD2026072001", user: "李明辉", amount: 1060.00, time: "2026-07-20 14:22" },
+    { id: "CD2026072502", user: "王建国", amount: 530.00, time: "2026-07-25 09:15" },
+    { id: "CD2026080303", user: "赵晓燕", amount: 2120.00, time: "2026-08-03 11:40" },
+    { id: "CD202080504", user: "陈志强", amount: 106.00, time: "2026-08-05 16:55" },
+    { id: "CD202080805", user: "李明辉", amount: 3180.00, time: "2026-08-08 10:20" },
+    { id: "CD202081006", user: "周文博", amount: 1590.00, time: "2026-08-10 13:05" },
+    { id: "CD202081107", user: "王建国", amount: 2120.00, time: "2026-08-11 09:30" },
+    { id: "CD202081208", user: "孙丽华", amount: 530.00, time: "2026-08-12 15:18" }
   ];
 
   // 企业用户对公收款账户（企业用户充值时展示，便于公对公转账）
@@ -280,7 +293,7 @@ window.MockDB = (function () {
   return {
     CARRIERS, FACE_VALUES, TAX_TYPES, PHONE_POOL,
     getSession, setSession,
-    ORDERS, FLOWS, COMMISSIONS, WITHDRAWS,
+    ORDERS, FLOWS, COMMISSIONS, WITHDRAWS, CONSUMPTION_DETAILS,
     CORP_ACCOUNT, RECHARGE_AMOUNTS,
     SMS_TEMPLATES,
     AGENT_DIRECT, AGENT_INDIRECT, AGENT_COMMISSION,
