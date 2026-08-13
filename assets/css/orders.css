@@ -181,25 +181,44 @@
 }
 .detail-section-title:first-child { margin-top: 4px; }
 
+/* 订单详情页：返回链接 */
+.back-link {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+.back-link:hover { text-decoration: underline; }
+
 /* 短信模板卡片（与「短信群发 → 选择模板」列表展示一致） */
 .sms-tpl-sig { font-size: 13px; color: var(--text-2); margin: 2px 0 6px; }
 .sms-tpl-sig b { color: var(--text-1); }
 
-/* 基本信息表格 */
+/* 基本信息表格 — 收窄避免太空旷 */
 .detail-info-table {
   margin-bottom: 0;
+  width: auto;
+  max-width: 560px;
 }
 .detail-info-table td {
-  padding: 9px 14px;
+  padding: 8px 16px;
   font-size: 13px;
   border-bottom: 1px solid #f1f3f5;
 }
 .detail-info-table .info-label {
-  width: 100px;
+  width: 90px;
   color: var(--text-2);
   background: #fafbfc;
   font-weight: 600;
   font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 详情页卡片：PC 一行 5 列，H5 自动换行 */
+#detailBody .tiles {
+  grid-template-columns: repeat(5, 1fr);
 }
 
 /* 明细工具栏：筛选 + 导出 */
@@ -306,4 +325,24 @@
   .detail-modal { width: 96vw; }
   .detail-info-table .info-label { width: 85px; }
   .detail-info-table td { padding: 8px 10px; font-size: 12px; }
+
+  /* 详情页卡片 H5：5 列 → 2~3 列自适应 */
+  #detailBody .tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ========== 详情内分页 ========== */
+.detail-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f3f5;
+}
+.detail-pagination .page-info {
+  font-size: 13px;
+  color: var(--text-2);
 }

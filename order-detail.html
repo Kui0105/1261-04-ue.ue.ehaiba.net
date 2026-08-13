@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>订单详情 · 话费代充系统</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/orders.css" />
+</head>
+<body>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>if (!App.requireLogin("orders")) document.write("");</script>
+
+  <div class="container page">
+    <!-- 页面标题 -->
+    <div class="page-head">
+      <a href="orders.html" class="back-link">← 返回订单列表</a>
+      <h1 id="detailTitle">订单详情</h1>
+    </div>
+
+    <!-- 详情主体（由 order-detail.js 根据 ?id= 渲染） -->
+    <div id="detailBody"></div>
+  </div>
+
+  <script src="assets/js/order-detail.js"></script>
+</body>
+</html>

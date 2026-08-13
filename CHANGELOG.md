@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-08-13（迭代 57）订单详情页样式优化（3 项）
+
+1. **基本信息表格收窄**：`.detail-info-table` 加 `width:auto; max-width:560px;`，不再撑满整行容器，消除右侧大片空白；label 列 `white-space:nowrap` 防止换行。
+2. **卡片 PC 一行展示**：`#detailBody .tiles` 覆盖为 `grid-template-columns: repeat(5, 1fr)`，5 张统计卡片（号码总数/充值中/充值成功/充值失败/退款总额）在 PC 端单行排列；H5（≤520px）降为 `repeat(2, 1fr)` 自适应换行。
+3. **明细列表加分页**：新增 `detailPageSize=20`、`applyDetailPagination()`、`goDetailPage(p)`；筛选后自动重置到第 1 页并重新分页；导出仍输出全量数据（不受分页影响）。
+
+---
+
+## 2026-08-13（迭代 56）订单详情由弹窗改为独立页面
+
+1. **新建 `order-detail.html`**：独立详情页，通过 URL `?id=` 参数接收订单编号，含「← 返回订单列表」链接。
+2. **新建 `assets/js/order-detail.js`**：从 `orders.html` 抽出全部详情渲染逻辑（规整函数/表格构建/筛选/导出），页面加载时根据 `?id=` 自动查找订单并渲染；缺少参数或未找到时显示空态提示。
+3. **`orders.html` 瘦身**：删除详情弹窗 HTML（`#detailMask`）、删除全部详情相关函数（`renderRechargeDetail/renderSmsDetail/buildXxxTable/getXxxDetailsNorm/openDetail/closeDetail/filterDetailRows/exportDetail/currentDetailOrder/Norm` 及 rechargeRowBadge/smsRowBadge/getTaxLabel/getCarrierLabel）；「查看详情」按钮改为 `goDetail(id)` 跳转 `order-detail.html?id=xxx`。
+4. **`orders.css`**：新增 `.back-link`（返回链接样式）；保留全部 `.detail-*` 样式供详情页复用。
+
+---
+
 ## 2026-08-13（迭代 55）短信订单详情模板展示对齐（短信签名 + 模板内容）
 
 1. **data.js**：`SMS_TEMPLATES` 各模板新增 `signature`（短信签名，统一为「海拔科技」）；新增 通知类 模板「订单状态提醒」(T5)，使旧种子订单 `SMS20260726018` 引用的模板真实存在（修复此前详情内容空白）。
