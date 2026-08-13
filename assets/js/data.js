@@ -176,7 +176,28 @@ window.MockDB = (function () {
     { id: "F20260731004", type: "话费充值",   amount: -1590,  after: 2531.42, account: "系统余额", orderId: "ORD20260729004", time: "2026-07-30 15:20" },
     { id: "F20260731003", type: "订单退款",   amount: 80,     after: 4121.42, account: "系统余额", orderId: "ORD20260728003", time: "2026-07-29 17:35" },
     { id: "F20260731002", type: "短信群发",   amount: -5.80,  after: 4041.42, account: "系统余额", orderId: "SMS20260727002", time: "2026-07-28 19:10" },
-    { id: "F20260731001", type: "话费充值",   amount: -3180,  after: 4047.22, account: "系统余额", orderId: "ORD20260727001", time: "2026-07-27 10:55" }
+    { id: "F20260731001", type: "话费充值",   amount: -3180,  after: 4047.22, account: "系统余额", orderId: "ORD20260727001", time: "2026-07-27 10:55" },
+    { id: "F20260726021", type: "话费充值",   amount: -1590,  after: 3980.42, account: "系统余额", orderId: "ORD20260726007", time: "2026-07-26 17:30" },
+    { id: "F20260726020", type: "短信群发",   amount: -4.20,  after: 5570.42, account: "系统余额", orderId: "SMS20260725001", time: "2026-07-26 16:10" },
+    { id: "F20260726019", type: "平台充值",   amount: 2000,   after: 5574.62, account: "系统余额", orderId: "",            time: "2026-07-26 09:20" },
+    { id: "F20260725018", type: "订单退款",   amount: 60,     after: 3574.62, account: "系统余额", orderId: "ORD20260725002", time: "2026-07-25 18:05" },
+    { id: "F20260725017", type: "平台扣减",   amount: -30,    after: 3514.62, account: "系统余额", orderId: "",            time: "2026-07-25 14:40" },
+    { id: "F20260725016", type: "话费充值",   amount: -530,   after: 3544.62, account: "系统余额", orderId: "ORD20260725001", time: "2026-07-25 11:25" },
+    { id: "F20260725015", type: "微信支付",   amount: 500,    after: 4074.62, account: "微信支付", orderId: "",            time: "2026-07-25 09:00" },
+    { id: "F20260724014", type: "短信群发",   amount: -3.00,  after: 3574.62, account: "系统余额", orderId: "SMS20260724002", time: "2026-07-24 20:15" },
+    { id: "F20260724013", type: "订单退款",   amount: 90,     after: 3577.62, account: "系统余额", orderId: "ORD20260724001", time: "2026-07-24 16:50" },
+    { id: "F20260724012", type: "话费充值",   amount: -2650,  after: 3487.62, account: "系统余额", orderId: "ORD20260724003", time: "2026-07-24 13:30" },
+    { id: "F20260724011", type: "平台充值",   amount: 3000,   after: 6137.62, account: "系统余额", orderId: "",            time: "2026-07-24 09:30" },
+    { id: "F20260723010", type: "话费充值",   amount: -1060,  after: 3137.62, account: "系统余额", orderId: "ORD20260723005", time: "2026-07-23 17:45" },
+    { id: "F20260723009", type: "短信群发",   amount: -6.50,  after: 4197.62, account: "系统余额", orderId: "SMS20260723001", time: "2026-07-23 14:20" },
+    { id: "F20260723008", type: "平台扣减",   amount: -45,    after: 4204.12, account: "系统余额", orderId: "",            time: "2026-07-23 10:05" },
+    { id: "F20260723007", type: "平台充值",   amount: 1500,   after: 4249.12, account: "系统余额", orderId: "",            time: "2026-07-23 09:00" },
+    { id: "F20260722006", type: "话费充值",   amount: -2120,  after: 2749.12, account: "系统余额", orderId: "ORD20260722006", time: "2026-07-22 16:30" },
+    { id: "F20260722005", type: "订单退款",   amount: 120,    after: 4869.12, account: "系统余额", orderId: "ORD20260722004", time: "2026-07-22 13:15" },
+    { id: "F20260722004", type: "短信群发",   amount: -2.30,  after: 4749.12, account: "系统余额", orderId: "SMS20260722003", time: "2026-07-22 10:50" },
+    { id: "F20260722003", type: "平台扣减",   amount: -25,    after: 4751.42, account: "系统余额", orderId: "",            time: "2026-07-22 09:40" },
+    { id: "F20260721002", type: "微信支付",   amount: 800,    after: 4776.42, account: "微信支付", orderId: "",            time: "2026-07-21 19:00" },
+    { id: "F20260721001", type: "话费充值",   amount: -318,   after: 3976.42, account: "系统余额", orderId: "ORD20260721001", time: "2026-07-21 15:10" }
   ];
 
   // 佣金比例：直推 3‰、间推 2‰；仅推广「企业用户」产生佣金，个人用户推广无佣金
