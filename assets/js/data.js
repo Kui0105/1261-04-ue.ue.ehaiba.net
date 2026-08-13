@@ -172,13 +172,13 @@ window.MockDB = (function () {
   // price 为「未税」基准单价（元/条）；含税时页面按 ×1.06 展示（与话费充值一致）
   // 短信模板（均为后台预创建、定价的专属营销短信，前端只读不可改）
   const SMS_TEMPLATES = [
-    { id: "T1", category: "营销类", name: "会员日大促",
+    { id: "T1", name: "会员日大促",
       content: "【海拔科技】会员日专享：话费充值满100减10，再送5元券！点击 hc.ehaiba.com 立享，回TD退订。", price: 0.055 },
-    { id: "T2", category: "营销类", name: "周年庆狂欢",
+    { id: "T2", name: "周年庆狂欢",
       content: "【海拔科技】周年庆狂欢！全场话费充值8折，老用户专属福利，速戳 aaa.com，回TD退订。", price: 0.060 },
-    { id: "T3", category: "营销类", name: "节日礼遇",
+    { id: "T3", name: "节日礼遇",
       content: "【海拔科技】中秋礼遇：充值100元送5元，限时3天！错过等一年，戳 hc.ehaiba.com，回TD退订。", price: 0.058 },
-    { id: "T4", category: "营销类", name: "专属福利券",
+    { id: "T4", name: "专属福利券",
       content: "【海拔科技】您的专属福利券已到账（满50减3），本月底失效。立即使用 hc.ehaiba.com，回TD退订。", price: 0.052 }
   ];
 

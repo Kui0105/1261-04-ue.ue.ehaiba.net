@@ -19,16 +19,6 @@
       <p>用户在短信群发页面编辑短信内容，导入目标号码列表，提交短信群发订单。</p>
     </div>
 
-    <!-- 支付模式提示 -->
-    <div class="pay-mode-banner" id="payModeBanner">
-      <div class="pay-mode-icon" id="payModeIcon">💳</div>
-      <div class="pay-mode-info">
-        <b id="payModeTitle">个人充值</b>
-        <p id="payModeDesc">提交订单后将通过微信支付完成付款（平台承担手续费）。</p>
-      </div>
-      <span class="pay-mode-badge" id="payModeBadge">个人用户</span>
-    </div>
-
     <!-- ===== ① 税费类型 ===== -->
     <div class="panel">
       <h3><span class="step-num">①</span> 税费类型 <span class="req-tag">必选</span></h3>
@@ -158,7 +148,7 @@
       <h3>安全验证 <button class="x" onclick="closeVerify()">×</button></h3>
       <div class="verify-body">
         <p style="font-size:14px;color:var(--text-2);margin-bottom:14px">
-          企业用户余额支付需验证身份。验证码将发送至绑定手机号 <b id="verifyPhone"></b>：
+          为保障账户安全，订单金额将从账户余额扣减，验证码将发送至绑定手机号 <b id="verifyPhone"></b>：
         </p>
         <div class="verify-code-row">
           <input type="text" id="verifyCodeInput" class="code-input" maxlength="6" placeholder="输入验证码" autocomplete="off" />
@@ -191,28 +181,6 @@
     var pendingImportPhones = [];
     var pendingTplId = null;
 
-    /* ---------- 支付模式提示 ---------- */
-    (function renderPayMode() {
-      var icon = document.getElementById("payModeIcon");
-      var title = document.getElementById("payModeTitle");
-      var desc = document.getElementById("payModeDesc");
-      var badge = document.getElementById("payModeBadge");
-
-      if (s.type === "enterprise") {
-        icon.textContent = "🏢";
-        title.textContent = "企业群发";
-        desc.textContent = "订单金额将从账户余额实时扣减，余额不足请先通过对公转账充值。";
-        badge.textContent = "企业用户";
-        badge.className = "pay-mode-badge corp";
-      } else {
-        icon.textContent = "👤";
-        title.textContent = "个人群发";
-        desc.textContent = "提交订单后将通过微信扫码完成付款（平台承担手续费）。";
-        badge.textContent = "个人用户";
-        badge.className = "pay-mode-badge personal";
-      }
-    })();
-
     /* ---------- 模板选择 ---------- */
     function renderTplList() {
       var t = DB.TAX_TYPES[state.tax];
@@ -222,8 +190,7 @@
         return '<label class="sms-tpl ' + (checked ? "checked" : "") + '" data-tpl="' + tp.id + '">' +
           '<input type="radio" name="tpl" value="' + tp.id + '"' + (checked ? " checked" : "") + '/>' +
           '<span class="tick">✓</span>' +
-          '<div class="sms-tpl-head"><span class="sms-tpl-name">' + App.escapeHtml(tp.name) + '</span>' +
-            '<span class="badge info">' + tp.category + '</span></div>' +
+          '<div class="sms-tpl-head"><span class="sms-tpl-name">' + App.escapeHtml(tp.name) + '</span></div>' +
           '<div class="sms-tpl-content">' + App.escapeHtml(tp.content) + '</div>' +
           '<div class="sms-tpl-foot"><span>单条价格 <b>' + App.fmtMoney(unit) + '</b></span>' +
             '<span class="sms-tax-badge ' + (state.tax === "taxed" ? "taxed" : "untaxed") + '">' +
@@ -243,7 +210,6 @@
         summaryDiv.innerHTML =
           '<div class="sms-tpl-picked">' +
             '<div class="sms-tpl-picked-head"><b>' + App.escapeHtml(tp.name) + '</b>' +
-              '<span class="badge info">' + tp.category + '</span>' +
               '<a href="javascript:void(0)" class="sms-tpl-change" onclick="openTplModal()">更换模板 ›</a></div>' +
             '<div class="sms-tpl-content">' + App.escapeHtml(tp.content) + '</div>' +
             '<div class="sms-tpl-picked-foot">单条价格 <b>' + App.fmtMoney(unit) + '</b> · ' +
@@ -474,11 +440,9 @@
       var total = unit * state.phones.length;
       var sess = App.getSession();
 
-      // 企业额度校验
-      if (sess.type === "enterprise") {
-        var avail = sess.balance + (sess.creditLimit - sess.usedCredit);
-        if (total > avail) { App.toast("余额 / 预授权额度不足"); return; }
-      }
+      // 余额 / 预授权额度校验（统一，前端不区分个人/企业）
+      var avail = sess.balance + (sess.creditLimit - sess.usedCredit);
+      if (total > avail) { App.toast("余额 / 预授权额度不足"); return; }
 
       var afterBalance = Math.max(0, sess.balance - total);
 
@@ -495,10 +459,7 @@
         // 支付方式
         '<div class="pay-method-section">' +
           '<div class="pay-method-label">支付方式</div>' +
-          (sess.type === "enterprise"
-            ? '<div class="pay-method-value corp-pay">余额支付</div>'
-            : '<div class="pay-method-value personal-pay">💵 微信扫码支付</div>'
-          ) +
+          '<div class="pay-method-value corp-pay">余额支付</div>' +
         '</div>' +
 
         // 手机号码 chip 展示
@@ -510,22 +471,12 @@
           '</div>' +
         '</div>' +
 
-        // 企业用户余额信息
-        (sess.type === "enterprise"
-          ? '<div class="balance-cards">' +
-              '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">当前余额</div></div>' +
-              '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
-              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">消费后余额</div></div>' +
-            '</div>'
-          : ''
-        ) +
-
-        (sess.type !== "enterprise"
-          ? '<p style="font-size:13px;color:var(--text-2);text-align:center;padding:8px 0">' +
-              '本次将发起微信支付 <b style="color:var(--primary)">' + App.fmtMoney(total) + '</b>（平台承担手续费）' +
-            '</p>'
-          : ''
-        );
+        // 余额信息（统一余额支付，前端不区分个人/企业）
+        '<div class="balance-cards">' +
+          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">当前余额</div></div>' +
+          '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
+          '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">消费后余额</div></div>' +
+        '</div>';
 
       document.getElementById("confirmMask").classList.add("show");
     }
@@ -535,23 +486,8 @@
     /* ---------- 执行确认支付（区分个人/企业） ---------- */
     function doConfirmPay() {
       closeConfirm();
-
-      var sess = App.getSession();
-
-      // 企业用户走验证码流程
-      if (sess.type === "enterprise") {
-        openVerify();
-        return;
-      }
-
-      // 个人用户直接确认微信支付
-      var t = DB.TAX_TYPES[state.tax];
-      var tp = DB.SMS_TEMPLATES.find(function (x) { return x.id === state.tplId; });
-      var unit = t.rate ? tp.price * (1 + t.rate) : tp.price;
-      var total = unit * state.phones.length;
-      if (!confirm("将发起微信支付 " + App.fmtMoney(total) + "，确认支付？")) return;
-
-      executePayment();
+      // 统一走安全验证码流程（余额支付）
+      openVerify();
     }
 
     /* ---------- 企业验证码验证 ---------- */
@@ -609,7 +545,7 @@
       // 生成短信任务（进入「订单管理」）
       var id = "SMS" + Date.now();
       var task = {
-        id: id, kind: "sms", template: tp.name, category: tp.category,
+        id: id, kind: "sms", template: tp.name,
         unitPrice: Math.round(unit * 1000) / 1000, tax: state.tax,
         count: state.phones.length, total: total, status: "process",
         createdAt: new Date().toLocaleString("zh-CN").slice(0, 16),
