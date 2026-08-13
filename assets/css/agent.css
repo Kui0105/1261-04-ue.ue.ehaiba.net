@@ -359,3 +359,11 @@
   min-width: 80px;
   text-align: center;
 }
+
+/* 提现弹窗：表单左右顶边贴边，去除留白（标题栏保留内边距） */
+#withdrawMask .modal > *:not(h3) {
+  padding-left: 0;
+  padding-right: 0;
+}
+#withdrawMask .apply-form { margin-top: 0; }
+#withdrawMask .wd-limit-bar { margin-bottom: 0; }

@@ -5,17 +5,16 @@
 
 ---
 
-## 2026-08-13（迭代 71）佣金明细扩至 25 条 + 分页 20 + 提现记录增加打款凭证列
+## 2026-08-13（迭代 73）佣金明细筛选拆分为单号/来源用户 + 提现弹窗表单去留白
 
-- **1. 佣金明细列表数据增加至 25 条 + 分页 20 条/页**：
-  - `data.js` 的 `COMMISSIONS` 由原先按真实企业下线计算的 4 条，改为**显式生成 25 条**（直推 13 条 + 间推 12 条，含真实下线 李娜/刘洋/吴昊/蒋涛，其余为演示企业客户）；编号 `C2026D001`~`C2026D013`、`C2026I001`~`C2026I012`，金额按 直推 3‰ / 间推 2‰ 实时计算，ID 唯一。
-  - 作废原先基于 `#commBody` 行 `data-*` 属性的 DOM 显隐筛选（`applyConsFilter` 改为数据驱动），新增 `getFilteredCommissions()`（按 单号/来源用户关键词 + 金额 + 时间范围 过滤）与 `renderCommList()`。
-  - 新增分页状态 `commPageIndex` / `COMM_PAGE_SIZE = 20`，列表下方新增分页容器 `<div class="pagination" id="commPager">`；`renderCommPager()` / `gotoCommPage()` 复用既有 `.pagination` 样式；筛选时自动回到第 1 页（25 条 → 2 页：20 + 5）。
-- **2. 提现记录弹窗新增「打款凭证」列**：
-  - `wd-table` 表头在原 5 列基础上新增 **打款凭证** 列（位于「提现状态」之后、「提现时间」之前）。
-  - 渲染逻辑（`renderWdRecords`）：仅 `已到账（打款成功）且含 voucher` 的行显示「查看凭证」按钮（点击 `openVoucher` 弹 SVG 凭证）；其余状态（待审核/待打款/审核驳回）以灰色「—」占位。
-  - 同步将原本嵌在「提现状态」单元格内的凭证按钮**移出**，避免与状态/驳回原因混排；新增 `.wd-dash` 灰色占位样式。
-- 校验：`agent.html` 内联脚本（2 段）经 `new Function` 解析通过；`data.js` 经 `node --check` 与整文件加载验证，`COMMISSIONS.length = 25`（直推 13 / 间推 12，ID 全唯一）；确认无 `data-amt/data-member/data-id` 残留引用。
+- **1. 佣金明细筛选「单号 / 来源用户」拆分为两个独立筛选项**：
+  - 筛选栏原单一「单号 / 来源用户」输入框（`consKw`，同时匹配 id 与 member）拆成 **单号**（`consId`）与 **来源用户**（`consMember`）两个独立 `filter-field`。
+  - `getFilteredCommissions()` 同步改为分别取 `consId` / `consMember` 值，各自独立过滤（单号查 `c.id`、来源用户查 `c.member`），保留产生时间范围筛选；空值该条件不参与过滤。
+- **2. 提现弹窗表单左右顶边去除留白**：
+  - 新增 CSS：`.wd-limit-bar` 上方说明与限额条、表单区通过 `#withdrawMask .modal > *:not(h3) { padding-left:0; padding-right:0 }` 取消全局 `.modal > *` 的 24px 左右内边距，使表单字段**贴边左右**显示。
+  - 移除提现表单 `.apply-form` 内联 `margin-top:14px`（HTML 改为无 margin），并加 `#withdrawMask .apply-form { margin-top:0 }` / `#withdrawMask .wd-limit-bar { margin-bottom:0 }`，使表单**紧贴顶边**（限额条下方无额外间距）。
+  - 标题栏（`h3`）保留原有内边距样式不变。
+- 校验：agent.html 内联脚本（2 段）new Function 通过；data.js / app.js node --check 通过；确认无 `consKw` 残留引用。
 
 ---
 
@@ -32,6 +31,8 @@
 - 校验：agent.html 内联脚本（2 段）new Function 通过；app.js / data.js node --check 通过；确认无 `consAmt` 残留引用。
 
 ---
+
+## 2026-08-13（迭代 71）佣金明细扩至 25 条 + 分页 20 + 提现记录增加打款凭证列
 
 - **1. 佣金明细列表数据增加至 25 条 + 分页 20 条/页**：
   - `data.js` 的 `COMMISSIONS` 由原先按真实企业下线计算的 4 条，改为**显式生成 25 条**（直推 13 条 + 间推 12 条，含真实下线 李娜/刘洋/吴昊/蒋涛，其余为演示企业客户）；编号 `C2026D001`~`C2026D013`、`C2026I001`~`C2026I012`，金额按 直推 3‰ / 间推 2‰ 实时计算，ID 唯一。

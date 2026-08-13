@@ -90,8 +90,12 @@
         </div>
         <div class="flow-filter-bar" style="padding:14px 22px 12px">
           <div class="filter-field" style="flex:1;min-width:140px">
-            <label>单号 / 来源用户</label>
-            <input type="text" id="consKw" placeholder="输入关键词搜索…" oninput="applyConsFilter()" />
+            <label>单号</label>
+            <input type="text" id="consId" placeholder="输入单号搜索…" oninput="applyConsFilter()" />
+          </div>
+          <div class="filter-field" style="flex:1;min-width:140px">
+            <label>来源用户</label>
+            <input type="text" id="consMember" placeholder="输入来源用户搜索…" oninput="applyConsFilter()" />
           </div>
           <div class="filter-field" style="min-width:150px">
             <label>产生时间</label>
@@ -172,7 +176,7 @@
         佣金随时可申请结算，填写银行卡号后由平台财务人工审核批量转账。
       </div>
       <div class="wd-limit-bar" id="wdLimitBar"></div>
-      <div class="apply-form" style="margin-top:14px">
+      <div class="apply-form">
         <div class="field">
           <label>提现金额（元）</label>
           <input type="number" id="wdAmt" placeholder="请输入提现金额" />
@@ -468,14 +472,18 @@
 
     /* ---------- 佣金明细筛选 + 分页（数据驱动，作用于 DB.COMMISSIONS） ---------- */
     function getFilteredCommissions() {
-      var kw = (document.getElementById("consKw").value || "").trim().toLowerCase();
+      var kwId = (document.getElementById("consId").value || "").trim().toLowerCase();
+      var kwMember = (document.getElementById("consMember").value || "").trim().toLowerCase();
       var dateFrom = document.getElementById("consDateFrom").value;
       var dateTo = document.getElementById("consDateTo").value;
       return (DB.COMMISSIONS || []).filter(function (c) {
-        if (kw) {
+        if (kwId) {
           var id = (c.id || "").toLowerCase();
+          if (id.indexOf(kwId) === -1) return false;
+        }
+        if (kwMember) {
           var member = (c.member || "").toLowerCase();
-          if (id.indexOf(kw) === -1 && member.indexOf(kw) === -1) return false;
+          if (member.indexOf(kwMember) === -1) return false;
         }
         if (dateFrom && c.time < dateFrom) return false;
         if (dateTo && c.time > dateTo) return false;
