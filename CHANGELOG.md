@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-08-13（迭代 76）编辑弹窗验证码输入框与按钮同行
+
+- **需求**：修改密码弹窗内「短信验证码」输入框需与「获取验证码」按钮处于**同一行**。
+- **根因**：`.code-row` 的 flex 横向布局规则原本只写在 `agent.css`（仅 `agent.html` 加载）。迭代 75 将编辑弹窗改为 `app.js` 全局注入后，在 话费充值 / 短信群发 / 订单管理 / 账户中心 四页（不加载 `agent.css`）中 `.code-row` 无样式，输入框与按钮退化为竖向堆叠。
+- **修复**：在全局 `style.css`（所有页面均加载）新增作用域限定的规则，仅对「修改密码弹窗」这类 `.apply-form` 内的 `.code-row` 生效，避免误伤 `register.html` / `login.html` 顶层的 `.code-row`（其结构为嵌套 `.field`）：
+  - `.apply-form .code-row { display: flex; gap: 8px; align-items: stretch; }`
+  - `.apply-form .code-row input { flex: 1; min-width: 0; width: auto; }`
+  - `.apply-form .code-row .btn { flex-shrink: 0; white-space: nowrap; }`
+  - 编辑弹窗 HTML 本就以 `.apply-form` 包裹，故以上规则在 5 个受保护页面通用；与 `agent.css` 既有 `.code-row` 规则不冲突（agent 页同时命中，效果一致）。
+- 校验：app.js 未改动；确认 `style.css` 已新增 `.apply-form .code-row` 三段规则。
+
+---
+
 ## 2026-08-13（迭代 75）编辑弹窗全局化 + 改密后退出登录
 
 - **1. 编辑（修改密码）弹窗全局化，5 个受保护页面均可打开**：

@@ -210,6 +210,11 @@ img { max-width: 100%; }
 .field.invalid input { border-color: var(--danger); }
 .field.invalid .err { display: block; }
 
+/* 验证码输入框 + 获取验证码按钮 同一行（适用于全局注入的修改密码弹窗，5 个页面通用） */
+.apply-form .code-row { display: flex; gap: 8px; align-items: stretch; }
+.apply-form .code-row input { flex: 1; min-width: 0; width: auto; }
+.apply-form .code-row .btn { flex-shrink: 0; white-space: nowrap; }
+
 /* segmented / radio cards */
 .seg { display: flex; gap: 12px; flex-wrap: wrap; }
 .seg label {
