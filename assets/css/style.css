@@ -403,6 +403,18 @@ img { max-width: 100%; }
 }
 .modal .x { cursor: pointer; color: var(--text-2); font-size: 22px; line-height: 1; background: none; border: none; }
 
+/* ---------- 微信扫码支付弹窗 ---------- */
+.wechat-modal { max-width: 360px; text-align: center; }
+.wechat-body { padding: 8px 24px 28px; display: flex; flex-direction: column; align-items: center; }
+.wechat-qr {
+  width: 200px; height: 200px; padding: 12px; background: #fff;
+  border: 1px solid var(--border); border-radius: 12px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+}
+.wechat-qr svg { width: 100%; height: 100%; display: block; }
+.wechat-amount { font-size: 16px; font-weight: 700; color: var(--text); margin: 16px 0 4px; }
+.wechat-tip { font-size: 13px; color: var(--text-2); margin: 0; }
+
 /* 确认弹窗内余额卡片（响应式：窄屏自动变2列） */
 .confirm-tiles {
   display: grid;

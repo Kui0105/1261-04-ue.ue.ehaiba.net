@@ -175,6 +175,18 @@
     </div>
   </div>
 
+  <!-- ========== 微信扫码支付弹窗 ========== -->
+  <div class="modal-mask" id="wechatMask">
+    <div class="modal wechat-modal">
+      <h3>微信扫码支付 <button class="x" type="button" onclick="closeWechat()">×</button></h3>
+      <div class="wechat-body">
+        <div class="wechat-qr" id="wechatQr"></div>
+        <p class="wechat-amount" id="wechatAmount"></p>
+        <p class="wechat-tip">请使用微信扫描上方二维码完成支付…</p>
+      </div>
+    </div>
+  </div>
+
   <script>
     var DB = App.DB;
     var state = { tax: "taxed", tplId: null, phones: [], invalidPhones: [] };
@@ -454,11 +466,11 @@
           '<tr style="background:#f0f4ff"><td class="amount" colspan="2">合计总额：' + App.fmtMoney(total) + '</td></tr>' +
         '</tbody></table>' +
 
-        // 支付方式（含税=余额+验证码，未税=微信扫码）
+        // 支付方式（含税=余额支付，未税=微信支付）
         '<div class="pay-method-section">' +
           '<div class="pay-method-label">支付方式</div>' +
           '<div class="pay-method-value ' + (state.tax === "taxed" ? "corp-pay" : "personal-pay") + '">' +
-            (state.tax === "taxed" ? "余额支付" : "\uFAE5\u4FE1\u626B\u7801\u652F\u4ED8") +
+            (state.tax === "taxed" ? "余额支付" : "微信支付") +
           '</div>' +
         '</div>' +
 
@@ -471,13 +483,16 @@
           '</div>' +
         '</div>' +
 
-        // 余额信息（四卡片）
-        '<div class="balance-cards">' +
-          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">账户余额</div></div>' +
-          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney((sess.creditLimit || 0) - (sess.usedCredit || 0)) + '</div><div class="bal-l">预授信额度</div></div>' +
-          '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
-          '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">消费后余额</div></div>' +
-        '</div>';
+        // 余额信息（仅含税展示四卡片；未税为微信支付不展示）
+        (state.tax === "taxed"
+          ? '<div class="balance-cards">' +
+              '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">账户余额</div></div>' +
+              '<div class="bal-card"><div class="bal-n">\u00A52000.00</div><div class="bal-l">预授信额度</div></div>' +
+              '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
+              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(-total) + '</div><div class="bal-l">消费后余额</div></div>' +
+            '</div>'
+          : ''
+        );
 
       document.getElementById("confirmMask").classList.add("show");
     }
@@ -491,13 +506,12 @@
         // 含税：余额支付 + 安全验证码
         openVerify();
       } else {
-        // 未税：个人用户微信扫码支付，直接确认
+        // 未税：微信扫码支付（展示二维码，3s 后自动成功）
         var t = DB.TAX_TYPES[state.tax];
         var tp = DB.SMS_TEMPLATES.find(function (x) { return x.id === state.tplId; });
         var unit = t.rate ? tp.price * (1 + t.rate) : tp.price;
         var total = unit * state.phones.length;
-        if (!confirm("将发起微信支付 " + App.fmtMoney(total) + "，确认支付？")) return;
-        executePayment();
+        openWechatPay(total);
       }
     }
 
@@ -541,36 +555,81 @@
       if (!DB.verifyCode(sess.phone || "", code)) {
         App.toast("验证码错误，请重试"); return;
       }
+      // 预授信额度校验（固定 2000）
+      var t = DB.TAX_TYPES[state.tax];
+      var tp = DB.SMS_TEMPLATES.find(function (x) { return x.id === state.tplId; });
+      var unit = t.rate ? tp.price * (1 + t.rate) : tp.price;
+      var total = Math.round(unit * state.phones.length * 100) / 100;
+      if (total > 2000) {
+        closeVerify();
+        App.toast("余额/预授信额度不足无法支付");
+        return;
+      }
+      var r = createOrder();
+      r.sess.balance = Math.max(0, r.sess.balance - total);
+      DB.setSession(r.sess);
       closeVerify();
-      executePayment();
+      paySuccessRedirect();
     }
 
-    /* ---------- 执行支付 & 生成订单 ---------- */
-    function executePayment() {
+    /* ---------- 生成订单 ---------- */
+    function createOrder() {
       var t = DB.TAX_TYPES[state.tax];
       var tp = DB.SMS_TEMPLATES.find(function (x) { return x.id === state.tplId; });
       var unit = t.rate ? tp.price * (1 + t.rate) : tp.price;
       var total = Math.round(unit * state.phones.length * 100) / 100;
       var sess = App.getSession();
-
-      // 生成短信任务（进入「订单管理」）
       var id = "SMS" + Date.now();
-      var task = {
+      DB.ORDERS.unshift({
         id: id, kind: "sms", template: tp.name,
         unitPrice: Math.round(unit * 1000) / 1000, tax: state.tax,
         count: state.phones.length, total: total, status: "process",
         createdAt: new Date().toLocaleString("zh-CN").slice(0, 16),
         details: DB.genDetails(state.phones.length)
-      };
-      DB.ORDERS.unshift(task);
+      });
+      return { id: id, total: total, sess: sess };
+    }
 
-      // 实时扣减余额
-      sess.balance = Math.max(0, sess.balance - total);
-      DB.setSession(sess);
+    function paySuccessRedirect() {
+      App.toast("支付成功");
+      setTimeout(function () { location.href = "orders.html"; }, 1000);
+    }
 
-      // 展示支付成功窗口
-      document.getElementById("payStatusOrderId").textContent = "任务号：" + id;
-      document.getElementById("payStatusMask").classList.add("show");
+    /* ---------- 未税：微信扫码支付（二维码弹窗，3s 后成功） ---------- */
+    function openWechatPay(total) {
+      createOrder(); // 微信支付不扣余额
+      document.getElementById("wechatAmount").textContent = "支付金额：" + App.fmtMoney(total);
+      document.getElementById("wechatQr").innerHTML = buildQrSvg("sms" + total + Date.now());
+      document.getElementById("wechatMask").classList.add("show");
+      setTimeout(function () {
+        document.getElementById("wechatMask").classList.remove("show");
+        App.toast("支付成功");
+        setTimeout(function () { location.href = "orders.html"; }, 600);
+      }, 3000);
+    }
+
+    function closeWechat() { document.getElementById("wechatMask").classList.remove("show"); }
+
+    /* 生成仿真二维码 SVG（仅原型展示用） */
+    function buildQrSvg(seedStr) {
+      var n = 25, cell = 8, size = n * cell;
+      var seed = 0;
+      for (var i = 0; i < seedStr.length; i++) seed = (seed * 31 + seedStr.charCodeAt(i)) % 100000;
+      function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+      var rects = "";
+      function module(x, y) { rects += '<rect x="' + (x * cell) + '" y="' + (y * cell) + '" width="' + cell + '" height="' + cell + '"/>'; }
+      function finder(ox, oy) {
+        rects += '<rect x="' + (ox * cell) + '" y="' + (oy * cell) + '" width="' + (7 * cell) + '" height="' + (7 * cell) + '"/>';
+        rects += '<rect x="' + ((ox + 1) * cell) + '" y="' + ((oy + 1) * cell) + '" width="' + (5 * cell) + '" height="' + (5 * cell) + '" fill="#fff"/>';
+        rects += '<rect x="' + ((ox + 2) * cell) + '" y="' + ((oy + 2) * cell) + '" width="' + (3 * cell) + '" height="' + (3 * cell) + '"/>';
+      }
+      for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) {
+        var inFinder = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+        if (inFinder) continue;
+        if (rnd() > 0.5) module(x, y);
+      }
+      finder(0, 0); finder(n - 7, 0); finder(0, n - 7);
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '"><rect width="' + size + '" height="' + size + '" fill="#fff"/><g fill="#111">' + rects + '</g></svg>';
     }
 
     /* ---------- 初始化 ---------- */
