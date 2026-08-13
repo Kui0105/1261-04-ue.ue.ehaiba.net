@@ -124,6 +124,8 @@ img { max-width: 100%; }
 .btn-ghost { background: transparent; color: var(--text-2); }
 .btn-ghost:hover { color: var(--text); }
 .btn-block { width: 100%; }
+/* 弹窗内直接放置的按钮需保留自身垂直内边距（.modal > * 的 padding:0 24px 会覆盖 .btn 的 9px 纵向内边距，导致文字贴边/不居中） */
+.modal > .btn { padding: 9px 18px; }
 .btn-lg { padding: 13px 22px; font-size: 15px; }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 

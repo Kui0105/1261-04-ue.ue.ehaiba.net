@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-08-13（迭代 62）短信群发支付按用户类型分流 + 账户中心按钮垂直居中修复
+
+- **短信群发页（sms.html）支付流程改为按用户类型分流（与税费类型无关）**：与 迭代 61 话费充值逻辑对齐。新增判定 `var isBalancePay = s.type === "enterprise"`。
+  - 个人用户：无论选「含税」还是「未税」，一律走**微信扫码支付**（`openWechatPay`，二维码 3s 自动成功，不扣余额）。
+  - 企业用户：无论选「含税」还是「未税」，一律走**余额支付**（`openVerify` → `doVerifyPay` → `createOrder` + 扣减余额）。
+  - `submitSend()`：确认弹窗「支付方式」标签与余额四卡片可见性改由 `isBalancePay` 控制；顺手修正「消费后余额」卡片（原误显 `-total`，改为真实剩余 `afterBalance = sess.balance - total`）。
+  - `doConfirmPay()`：路由判断由 `state.tax === "taxed"` 改为 `s.type === "enterprise"`。
+- **账户中心企业「立即充值」弹窗【我知道了】按钮垂直居中修复**：根因为 `.modal > * { padding: 0 24px }` 选择器优先级高于 `.btn`，覆盖了按钮的 9px 纵向内边距，使按钮被压成文字高度、文字贴边不居中。新增规则 `.modal > .btn { padding: 9px 18px; }`（优先级 0,2,0 > 0,1,1）恢复按钮自身内边距，文字在按钮内上下居中。
+- 内联 JS 经 `new Function` 解析校验通过（sms.html / account.html / recharge.html 各 2 段）。
+
+---
+
 ## 2026-08-13（迭代 61）订单支付流程按用户类型分流 + 账户中心个人隐藏累计充值
 
 - **订单提交支付流程改为按用户类型分流（与税费类型无关）**：
