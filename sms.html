@@ -437,7 +437,6 @@
       var sess = App.getSession();
 
       // 原型：不做余额/额度拦截，直接进入支付流程（演示账户余额充足即可）
-      var afterBalance = Math.max(0, sess.balance - total);
 
       // 支付方式由用户类型决定：企业用户=余额支付（走验证码），个人用户=微信扫码支付
       var isBalancePay = s.type === "enterprise";
@@ -466,7 +465,7 @@
               '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">账户余额</div></div>' +
               '<div class="bal-card"><div class="bal-n">\u00A52000.00</div><div class="bal-l">预授信额度</div></div>' +
               '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
-              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">消费后余额</div></div>' +
+              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(-total) + '</div><div class="bal-l">消费后余额</div></div>' +
             '</div>'
           : ''
         );
