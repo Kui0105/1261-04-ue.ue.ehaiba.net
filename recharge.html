@@ -36,7 +36,7 @@
         <label class="checked" data-tax="taxed">
           <input type="radio" name="tax" value="taxed" checked />
           <span class="tick">✓</span>
-          <div class="t">含税（6% 机票）</div>
+          <div class="t">含税（6% 专票）</div>
           <div class="d">平台开具增值税专用发票</div>
         </label>
         <label data-tax="untaxed">
@@ -475,7 +475,7 @@
       document.getElementById("confirmBody").innerHTML =
         '<table class="table confirm-table" style="margin-bottom:14px;width:100%"><tbody>' +
           '<tr><td style="width:36%">\u8FD0\u8425\u5546</td><td><b>' + (carrierObj.label || "-") + '</b></td></tr>' +
-          '<tr><td>\u7A0E\u8D39\u7C7B\u578B</td><td>' + (state.tax === "taxed" ? "\u542B\u7A0E\uFF06%\u4E13\u7968\uFF09" : "\u672A\u7A0E\uFF08\u666E\u7968\uFF09") + '</td></tr>' +
+          '<tr><td>\u7A0E\u8D39\u7C7B\u578B</td><td>' + (state.tax === "taxed" ? "含税（6%专票）" : "未税（普票）") + '</td></tr>' +
           '<tr><td>\u5145\u503C\u9762\u989D</td><td><b>' + state.face + ' \u5143</b></td></tr>' +
           '<tr><td>\u5355\u4EF7\u91D1\u989D</td><td class="amount">' + App.fmtMoney(unit) + '</td></tr>' +
           '<tr><td>\u7A0E\u989D\u6570\u91CF</td><td class="amount">' + (taxAmt > 0 ? App.fmtMoney(taxAmt) : "0") + '</td></tr>' +
@@ -483,10 +483,12 @@
           '<tr style="background:#f0f4ff"><td class="amount" colspan="2">\u8BA2\u5355\u603B\u989D\uFF1A' + App.fmtMoney(total) + '</td></tr>' +
         '</tbody></table>' +
 
-        // 支付方式
+        // 支付方式（含税=余额+验证码，未税=微信扫码）
         '<div class="pay-method-section">' +
-          '<div class="pay-method-label">\u652F\u4ED8\u65B9\u5F0F</div>' +
-          '<div class="pay-method-value corp-pay">\u4F59\u989D\u652F\u4ED8</div>' +
+          '<div class="pay-method-label">支付方式</div>' +
+          '<div class="pay-method-value ' + (state.tax === "taxed" ? "corp-pay" : "personal-pay") + '">' +
+            (state.tax === "taxed" ? "余额支付" : "\uFAE5\u4FE1\u626B\u7801\u652F\u4ED8") +
+          '</div>' +
         '</div>' +
 
         // 手机号码展示
@@ -498,11 +500,12 @@
           '</div>' +
         '</div>' +
 
-        // 余额信息（统一余额支付，前端不区分个人/企业）
+        // 余额信息（四卡片）
         '<div class="balance-cards">' +
-          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(s.balance) + '</div><div class="bal-l">\u5F53\u524D\u4F59\u989D</div></div>' +
-          '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">\u672C\u6D88\u8D39\u91D1\u989D</div></div>' +
-          '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">\u6D88\u8D39\u540E\u4F59\u989D</div></div>' +
+          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(s.balance) + '</div><div class="bal-l">账户余额</div></div>' +
+          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney((s.creditLimit || 0) - (s.usedCredit || 0)) + '</div><div class="bal-l">预授信额度</div></div>' +
+          '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
+          '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">消费后余额</div></div>' +
         '</div>';
 
       document.getElementById("confirmMask").classList.add("show");
@@ -510,11 +513,20 @@
 
     function closeConfirm() { document.getElementById("confirmMask").classList.remove("show"); }
 
-    /* ---------- 执行提交（区分个人/企业） ---------- */
+    /* ---------- 执行提交（含税走验证码，未税走微信扫码） ---------- */
     function doSubmitOrder() {
       closeConfirm();
-      // 统一走安全验证码流程（余额支付）
-      openVerify();
+      if (state.tax === "taxed") {
+        // 含税：余额支付 + 安全验证码
+        openVerify();
+      } else {
+        // 未税：个人用户微信扫码支付，直接确认
+        var t = DB.TAX_TYPES[state.tax];
+        var unit = t.rate ? state.face * (1 + t.rate) : state.face;
+        var total = unit * state.phones.length;
+        if (!confirm("将发起微信支付 " + App.fmtMoney(total) + "，确认支付？")) return;
+        executePayment();
+      }
     }
 
     /* ---------- 企业验证码验证 ---------- */

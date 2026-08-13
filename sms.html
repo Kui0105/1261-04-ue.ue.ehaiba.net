@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>短信群发 · 话费代充系统</title>
-  <link rel="stylesheet" href="assets/css/style.css" />
-  <link rel="stylesheet" href="assets/css/sms.css" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <link rel="stylesheet" href="assets/css/recharge.css" />
+    <link rel="stylesheet" href="assets/css/sms.css" />
 </head>
 <body>
   <script src="assets/js/data.js"></script>
@@ -69,7 +70,7 @@
     </div>
 
     <!-- 提交栏（底部统计） -->
-    <div class="summary sms-summary" id="summaryBar">
+    <div class="summary recharge-summary" id="summaryBar">
       <div class="summary-stats">
         <div class="stat-item">
           <span class="stat-label">合计总额</span>
@@ -453,10 +454,12 @@
           '<tr style="background:#f0f4ff"><td class="amount" colspan="2">合计总额：' + App.fmtMoney(total) + '</td></tr>' +
         '</tbody></table>' +
 
-        // 支付方式
+        // 支付方式（含税=余额+验证码，未税=微信扫码）
         '<div class="pay-method-section">' +
           '<div class="pay-method-label">支付方式</div>' +
-          '<div class="pay-method-value corp-pay">余额支付</div>' +
+          '<div class="pay-method-value ' + (state.tax === "taxed" ? "corp-pay" : "personal-pay") + '">' +
+            (state.tax === "taxed" ? "余额支付" : "\uFAE5\u4FE1\u626B\u7801\u652F\u4ED8") +
+          '</div>' +
         '</div>' +
 
         // 手机号码 chip 展示
@@ -468,9 +471,10 @@
           '</div>' +
         '</div>' +
 
-        // 余额信息（统一余额支付，前端不区分个人/企业）
+        // 余额信息（四卡片）
         '<div class="balance-cards">' +
-          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">当前余额</div></div>' +
+          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">账户余额</div></div>' +
+          '<div class="bal-card"><div class="bal-n">' + App.fmtMoney((sess.creditLimit || 0) - (sess.usedCredit || 0)) + '</div><div class="bal-l">预授信额度</div></div>' +
           '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
           '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">消费后余额</div></div>' +
         '</div>';
@@ -480,11 +484,21 @@
 
     function closeConfirm() { document.getElementById("confirmMask").classList.remove("show"); }
 
-    /* ---------- 执行确认支付（区分个人/企业） ---------- */
+    /* ---------- 执行确认支付（含税走验证码，未税走微信扫码） ---------- */
     function doConfirmPay() {
       closeConfirm();
-      // 统一走安全验证码流程（余额支付）
-      openVerify();
+      if (state.tax === "taxed") {
+        // 含税：余额支付 + 安全验证码
+        openVerify();
+      } else {
+        // 未税：个人用户微信扫码支付，直接确认
+        var t = DB.TAX_TYPES[state.tax];
+        var tp = DB.SMS_TEMPLATES.find(function (x) { return x.id === state.tplId; });
+        var unit = t.rate ? tp.price * (1 + t.rate) : tp.price;
+        var total = unit * state.phones.length;
+        if (!confirm("将发起微信支付 " + App.fmtMoney(total) + "，确认支付？")) return;
+        executePayment();
+      }
     }
 
     /* ---------- 企业验证码验证 ---------- */
