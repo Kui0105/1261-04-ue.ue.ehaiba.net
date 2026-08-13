@@ -205,8 +205,10 @@ window.MockDB = (function () {
 
   // 提现记录
   const WITHDRAWS = [
-    { id: "W2026071501", amount: 320.00, bank: "招商银行 6225****8831", accountName: "张三", status: "已到账", time: "2026-07-15 16:20" },
-    { id: "W2026080102", amount: 1000.00, bank: "建设银行 4367****1234", accountName: "张三", status: "待审核", time: "2026-08-01 10:30" }
+    { id: "W2026071501", amount: 320.00, bank: "招商银行 6225****8831", accountName: "张三", status: "已到账", time: "2026-07-15 16:20", voucher: true },
+    { id: "W2026080102", amount: 1000.00, bank: "建设银行 4367****1234", accountName: "张三", status: "待审核", time: "2026-08-01 10:30" },
+    { id: "W2026081203", amount: 500.00, bank: "招商银行 6225****8831", accountName: "张三", status: "待打款", time: "2026-08-12 09:05" },
+    { id: "W2026080504", amount: 2680.00, bank: "工商银行 6212****5566", accountName: "张三", status: "驳回", time: "2026-08-05 14:12", rejectReason: "银行卡号与开户名不一致，打款失败，请核对收款信息后重新提交提现申请。" }
   ];
 
   // 可通明细（代理商中心展示：下级用户的消费订单记录）

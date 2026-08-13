@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-08-13（迭代 69）代理中心六项调整（筛选样式/团队TAB/推广标题/提现验证码/记录凭证/去账户面板）
+
+- **1. 筛选项样式错乱修复**：根因为佣金明细筛选栏 `.flow-filter-bar / .filter-field / .date-range` 的样式仅定义在 `account.css`，而 `agent.html` 并未加载该样式表，导致筛选栏无样式、布局错乱。已在 `agent.css` 中补全**自包含**的筛选栏样式（flex 布局 + 输入框 36px 高 + 日期区间 `.date-range`），代理页面不再依赖 account.css。
+- **2. 我的团队弹窗 TAB 调整 + 数据统计 + 分页**：
+  - TAB 文案去掉「TAB」字眼，改为 **直推 / 间推**。
+  - 新增**数据统计条**（`.team-stats`）：展示 `直推（7）` `间推（8）`，数据来自 `DB.AGENT_DIRECT / DB.AGENT_INDIRECT` 实时长度。
+  - 列表**分页，每页 10 条**（`TEAM_PAGE_SIZE = 10`）；新增 `renderTeamPager()` 生成上一页/下一页 + 「第 X / Y 页（共 N 条）」，切换 TAB 自动回到第 1 页。
+- **3. 推广链接弹窗标题对齐**：移除 `promoModal` 标题 `h3` 上的 `justify-content:center` 内联样式，改由全局 `.modal > h3`（flex + space-between）统一管理，实现**标题左对齐、关闭 ICON 右对齐**。
+- **4. 佣金提现表单增加手机验证码**：新增「绑定手机号」输入框（打开弹窗时预填 `s.phone`）与「短信验证码」输入 + 「获取验证码」按钮（60s 倒计时，演示验证码通过 toast 展示）；`doWithdrawSubmit()` 提交前校验手机号格式、是否已获取验证码、验证码是否正确。
+- **5. 提现记录增加状态与凭证**：
+  - 状态扩展为 **打款成功（已到账）/ 待审核 / 待打款 / 审核驳回** 四种；驳回行显示**驳回原因**（`.wd-reason`）。
+  - 打款成功行提供「**查看凭证**」按钮，弹窗以 SVG 绘制转账凭证图（金额 / 收款账户 / 单号 / 时间 / 已到账）。
+  - `data.js` 的 `WITHDRAWS` 增加 `voucher` 字段（标记可看凭证）并新增「待打款」「审核驳回（含 rejectReason）」两条演示数据。
+- **6. 代理中心去掉底部提现账户显示**：移除页面底部「提现账户」面板（`#wdAccountPanel` 及 `renderWdAccount()` 函数与调用）；保留提现表单提交后 `s.wdAccount` 写入（下次打开预填银行卡信息）的逻辑。
+- 校验：agent.html / data.js 内联与文件级 JS 经 `new Function` / `node --check` 解析通过；确认无 `renderWdAccount / wdAccountPanel / 直推 TAB / 间推 TAB` 残留引用。
+
+---
+
 ## 2026-08-13（迭代 68）代理中心：卡片一行显示、功能入口下移、合并双列表
 
 - **卡片数据改为一行显示不换行**：`agent.css` 为 `#agentTiles` 增加专属规则 `grid-template-columns: repeat(5, minmax(0,1fr))`，覆盖全局 `.tiles` 的 4 列布局，使 5 张卡片（我的团队 / 累计消费金额 / 累计获得佣金 / 可提现佣金 / 已提现佣金）始终排成一行；卡片内数字与标签加 `white-space:nowrap` 防挤压换行；窄屏（≤635px）改为 `minmax(96px,1fr)` 横向滚动而非折行。

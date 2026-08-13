@@ -114,13 +114,6 @@
         </div>
       </div>
 
-      <!-- 提现账户展示 -->
-      <div class="panel" id="wdAccountPanel" style="margin-bottom:18px">
-        <h3 style="margin:0 0 12px">提现账户</h3>
-        <div id="wdAccountInfo" style="font-size:14px;color:var(--text-2)">
-          暂无提现账户信息，请在「佣金提现」中填写并提交一次后自动记录。
-        </div>
-      </div>
     </div>
   </div>
 
@@ -135,13 +128,15 @@
     </div>
   </div>
 
-  <!-- ========== 我的团队弹窗（TAB切换 直推/间推） ========== -->
+  <!-- ========== 我的团队弹窗（切换 直推/间推） ========== -->
   <div class="modal-mask" id="teamMask">
     <div class="modal" style="max-width:720px">
       <h3>我的团队<button class="x" onclick="closeTeamModal()">×</button></h3>
+      <!-- 数据统计 -->
+      <div class="team-stats" id="teamStats"></div>
       <div class="team-tabs" id="teamTabs">
-        <button class="team-tab active" data-tab="direct" onclick="switchTeamTab('direct')">直推 TAB</button>
-        <button class="team-tab" data-tab="indirect" onclick="switchTeamTab('indirect')">间推 TAB</button>
+        <button class="team-tab active" data-tab="direct" onclick="switchTeamTab('direct')">直推</button>
+        <button class="team-tab" data-tab="indirect" onclick="switchTeamTab('indirect')">间推</button>
       </div>
       <div style="font-size:13px;color:var(--text-2);margin-bottom:12px" id="teamSub"></div>
       <div style="overflow-x:auto">
@@ -151,13 +146,15 @@
         </table>
       </div>
       <div id="teamEmpty" style="text-align:center;color:var(--text-2);padding:24px 0;display:none">暂无成员数据</div>
+      <!-- 分页 -->
+      <div class="pagination" id="teamPager"></div>
     </div>
   </div>
 
   <!-- ========== 推广链接弹窗 ========== -->
   <div class="modal-mask" id="promoMask">
     <div class="modal promo-modal" style="max-width:480px;text-align:center">
-      <h3 style="justify-content:center">推广链接<button class="x" onclick="closePromoModal()">×</button></h3>
+      <h3>推广链接<button class="x" onclick="closePromoModal()">×</button></h3>
       <div class="wechat-body" style="padding:20px 0">
         <div class="wechat-qr" id="promoQr"></div>
         <p style="font-size:13px;color:var(--text-2);margin:12px 0 6px">专属推广二维码</p>
@@ -196,6 +193,17 @@
           <label>银行卡号</label>
           <input type="text" id="wdCard" placeholder="收款银行卡号" />
         </div>
+        <div class="field">
+          <label>绑定手机号</label>
+          <input type="text" id="wdPhone" placeholder="请输入绑定手机号" maxlength="11" />
+        </div>
+        <div class="field">
+          <label>短信验证码</label>
+          <div class="code-row">
+            <input type="text" id="wdCode" placeholder="请输入验证码" maxlength="6" />
+            <button type="button" class="btn btn-outline btn-sm" id="wdSendCodeBtn" onclick="sendWithdrawCode()">获取验证码</button>
+          </div>
+        </div>
         <button class="btn btn-primary btn-block btn-lg" onclick="doWithdrawSubmit()">提交提现申请</button>
       </div>
     </div>
@@ -215,10 +223,22 @@
     </div>
   </div>
 
+  <!-- ========== 打款凭证弹窗 ========== -->
+  <div class="modal-mask" id="voucherMask">
+    <div class="modal" style="max-width:360px;text-align:center">
+      <h3>打款凭证<button class="x" onclick="closeVoucher()">×</button></h3>
+      <div id="voucherBody" style="padding:8px 0 24px;display:flex;justify-content:center"></div>
+    </div>
+  </div>
+
   <script>
     var DB = App.DB;
     var s = App.getSession() || {};
     var currentTeamTab = "direct";
+    var teamPageIndex = 1;
+    var TEAM_PAGE_SIZE = 10;
+    var wdSentCode = "";
+    var wdCodeTimer = null;
 
     /* ========== 协议内容 ========== */
     var AGREEMENT_TEXT =
@@ -403,9 +423,6 @@
       // ---- 提现记录（内嵌表格） ----
       renderWdRecords();
 
-      // ---- 提现账户展示 ----
-      renderWdAccount();
-
       // ---- 提现限额提示条（供提现弹窗使用） ----
       var wdMin = 100, wdFeeRate = 0, wdMaxSingle = 50000, wdMaxDaily = 200000;
       document.getElementById("wdLimitBar").innerHTML =
@@ -453,32 +470,55 @@
       }
       empty.style.display = "none";
       tbody.innerHTML = list.map(function (w) {
-        var done = w.status === "已到账";
-        var cls = done ? "success" : "process";
-        var txt = done ? "打款成功" : "待审核";
-        var statusExtra = w.status === "驳回" ? "审核驳回（" + (w.rejectReason || "原因未知") + "）" : txt;
-        var statusCls = w.status === "驳回" ? "fail" : cls;
+        var badgeCls, badgeTxt;
+        if (w.status === "已到账") { badgeCls = "success"; badgeTxt = "打款成功"; }
+        else if (w.status === "待打款") { badgeCls = "process"; badgeTxt = "待打款"; }
+        else if (w.status === "待审核") { badgeCls = "pending"; badgeTxt = "待审核"; }
+        else { badgeCls = "fail"; badgeTxt = "审核驳回"; }
+        var extra = (w.status === "已到账" && w.voucher)
+          ? ' <button class="wd-voucher-btn" onclick="openVoucher(\'' + w.id + '\')">查看凭证</button>'
+          : "";
+        var reason = (w.status === "驳回" && w.rejectReason)
+          ? '<div class="wd-reason">驳回原因：' + App.escapeHtml(w.rejectReason) + '</div>'
+          : "";
         return '<tr><td class="mono-sm">' + w.id + '</td><td class="amount">' + App.fmtMoney(w.amount) + '</td>' +
           '<td>' + App.escapeHtml(w.bank + " " + (w.accountName || "")) + '</td>' +
-          '<td><span class="badge ' + statusCls + '">' + statusExtra + '</span></td>' +
+          '<td><span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' + extra + reason + '</td>' +
           '<td>' + w.time + '</td></tr>';
       }).join("");
     }
 
-    /* ---------- 提现账户展示 ---------- */
-    function renderWdAccount() {
-      var info = s.wdAccount || null;
-      var el = document.getElementById("wdAccountInfo");
-      if (!info) {
-        el.innerHTML = '<span style="color:var(--text-2)">暂无提现账户信息，请在「佣金提现」中填写并提交一次后自动记录。</span>';
-        return;
-      }
-      el.innerHTML =
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:14px">' +
-          '<div><span style="color:var(--text-2)">户名</span><br><b>' + App.escapeHtml(info.name) + '</b></div>' +
-          '<div><span style="color:var(--text-2)">银行名称</span><br><b>' + App.escapeHtml(info.bank) + '</b></div>' +
-          '<div><span style="color:var(--text-2)">收款账号</span><br><b class="mono">' + App.escapeHtml(info.card) + '</b></div>' +
-        '</div>';
+    function openVoucher(wid) {
+      var w = (DB.WITHDRAWS || []).filter(function (x) { return x.id === wid; })[0];
+      if (!w) return;
+      document.getElementById("voucherBody").innerHTML = buildVoucherSvg(w);
+      document.getElementById("voucherMask").classList.add("show");
+    }
+    function closeVoucher() { document.getElementById("voucherMask").classList.remove("show"); }
+
+    function buildVoucherSvg(w) {
+      var amount = App.fmtMoney(w.amount);
+      var bank = (w.bank || "") + " " + (w.accountName || "");
+      var time = w.time || "";
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400" font-family="-apple-system,Segoe UI,Roboto,sans-serif">' +
+        '<rect width="300" height="400" rx="16" fill="#f5f7fa"/>' +
+        '<path d="M0 16 a16 16 0 0 1 16 -16 h268 a16 16 0 0 1 16 16 v40 h-300 z" fill="#07c160"/>' +
+        '<circle cx="150" cy="30" r="13" fill="#fff" opacity="0.95"/>' +
+        '<path d="M144 30 l4 4 l8 -8" stroke="#07c160" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<text x="150" y="68" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">转账凭证</text>' +
+        '<text x="150" y="120" text-anchor="middle" fill="#999" font-size="13">转账金额</text>' +
+        '<text x="150" y="156" text-anchor="middle" fill="#222" font-size="28" font-weight="800">' + amount + '</text>' +
+        '<line x1="22" y1="186" x2="278" y2="186" stroke="#e5e9f0" stroke-width="1"/>' +
+        '<text x="22" y="216" fill="#888" font-size="13">收款账户</text>' +
+        '<text x="278" y="216" text-anchor="end" fill="#333" font-size="13" font-weight="600">' + App.escapeHtml(bank) + '</text>' +
+        '<text x="22" y="248" fill="#888" font-size="13">转账单号</text>' +
+        '<text x="278" y="248" text-anchor="end" fill="#333" font-size="13">' + w.id + '</text>' +
+        '<text x="22" y="280" fill="#888" font-size="13">打款时间</text>' +
+        '<text x="278" y="280" text-anchor="end" fill="#333" font-size="13">' + time + '</text>' +
+        '<line x1="22" y1="300" x2="278" y2="300" stroke="#e5e9f0" stroke-width="1"/>' +
+        '<text x="150" y="336" text-anchor="middle" fill="#07c160" font-size="13" font-weight="700">✓ 已到账</text>' +
+        '<text x="150" y="364" text-anchor="middle" fill="#bbb" font-size="11">本凭证由平台财务系统生成，仅供演示</text>' +
+      '</svg>';
     }
 
     /* ---------- 操作：我的团队（TAB 弹窗） ---------- */
@@ -491,18 +531,35 @@
 
     function switchTeamTab(tab) {
       currentTeamTab = tab;
-      // 更新 TAB 样式
+      teamPageIndex = 1;
       document.querySelectorAll(".team-tab").forEach(function (el) {
         el.classList.toggle("active", el.dataset.tab === tab);
       });
-      var isDirect = tab === "direct";
+      renderTeamStats();
+      renderTeamList();
+    }
+
+    function renderTeamStats() {
+      var isDirect = currentTeamTab === "direct";
       var list = isDirect ? DB.AGENT_DIRECT : DB.AGENT_INDIRECT;
-      var rate = isDirect ? DB.AGENT_COMMISSION.directRate : DB.AGENT_COMMISSION.indirectRate;
+      document.getElementById("teamStats").innerHTML =
+        '<span class="ts-item">直推 <b>' + DB.AGENT_DIRECT.length + '</b></span>' +
+        '<span class="ts-item">间推 <b>' + DB.AGENT_INDIRECT.length + '</b></span>';
       document.getElementById("teamSub").textContent = isDirect
         ? "由您直接推广注册的下级客户，共 " + list.length + " 人。"
         : "由您的直推客户再次推广注册的下级客户，共 " + list.length + " 人。";
+    }
 
-      document.getElementById("teamBody").innerHTML = list.map(function (m) {
+    function renderTeamList() {
+      var isDirect = currentTeamTab === "direct";
+      var list = isDirect ? DB.AGENT_DIRECT : DB.AGENT_INDIRECT;
+      var rate = isDirect ? DB.AGENT_COMMISSION.directRate : DB.AGENT_COMMISSION.indirectRate;
+      var total = list.length;
+      var pages = Math.max(1, Math.ceil(total / TEAM_PAGE_SIZE));
+      if (teamPageIndex > pages) teamPageIndex = pages;
+      var start = (teamPageIndex - 1) * TEAM_PAGE_SIZE;
+      var pageItems = list.slice(start, start + TEAM_PAGE_SIZE);
+      document.getElementById("teamBody").innerHTML = pageItems.map(function (m) {
         var typeCls = m.type === "企业" ? "info" : "gray";
         var comm = m.type === "企业"
           ? '<b style="color:var(--success)">' + App.fmtMoney(Math.round(m.recharge * rate * 100) / 100) + "</b>"
@@ -516,7 +573,25 @@
           "<td>" + m.joinedAt + "</td>" +
         "</tr>";
       }).join("");
-      document.getElementById("teamEmpty").style.display = list.length ? "none" : "";
+      document.getElementById("teamEmpty").style.display = total ? "none" : "";
+      renderTeamPager(total, pages);
+    }
+
+    function renderTeamPager(total, pages) {
+      var pager = document.getElementById("teamPager");
+      if (pages <= 1) {
+        pager.innerHTML = '<span class="pg-info">共 ' + total + ' 条</span>';
+        return;
+      }
+      var html = '<button class="pg-btn" ' + (teamPageIndex <= 1 ? "disabled" : 'onclick="gotoTeamPage(' + (teamPageIndex - 1) + ')"') + '>上一页</button>';
+      html += '<span class="pg-info">第 ' + teamPageIndex + ' / ' + pages + ' 页（共 ' + total + ' 条）</span>';
+      html += '<button class="pg-btn" ' + (teamPageIndex >= pages ? "disabled" : 'onclick="gotoTeamPage(' + (teamPageIndex + 1) + ')"') + '>下一页</button>';
+      pager.innerHTML = html;
+    }
+
+    function gotoTeamPage(p) {
+      teamPageIndex = p;
+      renderTeamList();
     }
 
     /* ---------- 操作：推广链接弹窗 ---------- */
@@ -544,17 +619,46 @@
       document.getElementById("wdName").value = acc.name || "";
       document.getElementById("wdCard").value = acc.card || "";
       document.getElementById("wdAmt").value = "";
+      // 重置验证码状态
+      clearInterval(wdCodeTimer);
+      wdSentCode = "";
+      var sb = document.getElementById("wdSendCodeBtn");
+      sb.disabled = false; sb.textContent = "获取验证码";
+      document.getElementById("wdPhone").value = s.phone || "";
+      document.getElementById("wdCode").value = "";
       document.getElementById("withdrawMask").classList.add("show");
     }
     function closeWithdrawModal() { document.getElementById("withdrawMask").classList.remove("show"); }
+
+    function sendWithdrawCode() {
+      var phone = document.getElementById("wdPhone").value.trim();
+      if (!/^1\d{10}$/.test(phone)) { App.toast("请输入正确的绑定手机号"); return; }
+      wdSentCode = String(Math.floor(100000 + Math.random() * 900000));
+      App.toast("验证码已发送：" + wdSentCode + "（演示）");
+      var btn = document.getElementById("wdSendCodeBtn");
+      var left = 60;
+      btn.disabled = true;
+      btn.textContent = left + "s 后重发";
+      clearInterval(wdCodeTimer);
+      wdCodeTimer = setInterval(function () {
+        left--;
+        if (left <= 0) { clearInterval(wdCodeTimer); btn.disabled = false; btn.textContent = "获取验证码"; }
+        else { btn.textContent = left + "s 后重发"; }
+      }, 1000);
+    }
 
     function doWithdrawSubmit() {
       var amt = Number(document.getElementById("wdAmt").value);
       var bank = document.getElementById("wdBank").value.trim();
       var name = document.getElementById("wdName").value.trim();
       var card = document.getElementById("wdCard").value.trim();
+      var phone = document.getElementById("wdPhone").value.trim();
+      var code = document.getElementById("wdCode").value.trim();
       var st = DB.agentStats();
       if (!amt || amt <= 0) { App.toast("请输入提现金额"); return; }
+      if (!/^1\d{10}$/.test(phone)) { App.toast("请输入正确的绑定手机号"); return; }
+      if (!wdSentCode) { App.toast("请先获取短信验证码"); return; }
+      if (code !== wdSentCode) { App.toast("验证码不正确"); return; }
       if (amt < 100) { App.toast("最低提现金额为 ¥100"); return; }
       if (amt > st.withdrawable) { App.toast("超过可提现佣金"); return; }
       if (amt > 50000) { App.toast("单笔最高提现 ¥50,000"); return; }
@@ -567,8 +671,7 @@
 
       App.toast("提现申请已提交，财务将人工审核");
       closeWithdrawModal();
-      // 刷新提现账户展示和记录
-      renderWdAccount();
+      // 刷新提现记录
       renderWdRecords();
     }
 
