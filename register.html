@@ -164,12 +164,41 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block btn-lg">注册并登录</button>
+          <div class="agreement" id="agreementRowReg">
+            <input type="checkbox" id="agreeReg" />
+            <span>我已阅读并同意 <a href="javascript:void(0)" onclick="openAgreement()">《用户协议》</a> 与 <a href="javascript:void(0)" onclick="openAgreement()">《隐私政策》</a></span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="regSubmit">注册并登录</button>
         </form>
 
         <p class="auth-switch">已有账号？<a href="login.html">去登录</a></p>
       </div>
     </main>
+  </div>
+
+  <!-- 用户协议与隐私政策（登录/注册共用同一份） -->
+  <div class="modal-mask" id="agreementMask">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>用户协议与隐私政策 <button class="x" type="button" onclick="closeAgreement()">×</button></h3>
+      <div style="padding:0 24px 24px">
+        <h4 style="margin:10px 0 6px;font-size:15px">一、用户协议</h4>
+        <p style="font-size:13px;color:var(--text-2);line-height:1.7">
+          欢迎使用话费代充系统（以下简称"本平台"）。在注册或使用本平台服务前，请您务必仔细阅读并充分理解本协议的全部内容，特别是以加粗形式提示的责任豁免、限制条款等。一旦勾选同意并完成登录/注册，即视为您已阅读、理解并同意接受本协议各项条款的约束。
+        </p>
+        <p style="font-size:13px;color:var(--text-2);line-height:1.7;margin-top:8px">
+          您承诺所提供的注册信息真实、准确、完整、合法，并自行妥善保管账号及密码；因账号保管不善导致的损失由您自行承担。本平台按现状提供充值、短信群发等服务，不承诺服务的不间断性与及时性，法律法规另有强制性规定的除外。
+        </p>
+        <h4 style="margin:16px 0 6px;font-size:15px">二、隐私政策</h4>
+        <p style="font-size:13px;color:var(--text-2);line-height:1.7">
+          我们高度重视您的个人信息保护。本平台仅在为您提供服务所必需的范围内收集手机号、验证码、企业资质等必要信息，并采用加密等安全措施加以保护，不会在未经您授权的情况下向第三方披露，法律法规或监管部门另有要求的除外。
+        </p>
+        <p style="font-size:13px;color:var(--text-2);line-height:1.7;margin-top:8px">
+          您有权查询、更正自己的个人信息，并可依法律规定要求删除。更多说明详见平台公示的完整版《用户协议》与《隐私政策》。
+        </p>
+        <p style="font-size:12px;color:#9ca3af;margin-top:14px">（本内容为原型演示文本，正式上线前请替换为经法务审核的正式条款。）</p>
+      </div>
+    </div>
   </div>
 
   <script src="assets/js/data.js"></script>
@@ -324,6 +353,10 @@
 
     regForm.addEventListener("submit", function (e) {
       e.preventDefault();
+      if (!document.getElementById("agreeReg").checked) {
+        App.toast("请先阅读并同意《用户协议》与《隐私政策》");
+        return;
+      }
       try {
         var type = getRegType();
         var ok = true;
@@ -407,6 +440,29 @@
         App.toast("提交失败：" + (err && err.message ? err.message : "未知错误"));
       }
     });
+
+    /* ---------- 用户协议勾选（登录/注册共用同一份协议） ---------- */
+    function openAgreement() {
+      document.getElementById("agreementMask").classList.add("show");
+    }
+    function closeAgreement() {
+      document.getElementById("agreementMask").classList.remove("show");
+    }
+    document.getElementById("agreementMask").addEventListener("click", function (e) {
+      if (e.target === this) closeAgreement();
+    });
+    (function () {
+      var row = document.getElementById("agreementRowReg");
+      if (!row) return;
+      row.addEventListener("click", function (e) {
+        var tag = e.target.tagName.toLowerCase();
+        if (tag === "a" || tag === "input") return;
+        var chk = row.querySelector('input[type="checkbox"]');
+        chk.checked = !chk.checked;
+        document.getElementById("regSubmit").disabled = !chk.checked;
+      });
+      document.getElementById("regSubmit").disabled = !row.querySelector('input[type="checkbox"]').checked;
+    })();
 
     /* 初始化 */
     updateSendCodeBtnReg();

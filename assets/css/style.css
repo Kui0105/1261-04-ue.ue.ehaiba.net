@@ -104,6 +104,20 @@ img { max-width: 100%; }
 }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { background: #c7cdd6; color: #fff; cursor: not-allowed; }
+
+/* 用户协议勾选区（登录/注册共用同一份协议） */
+.agreement {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 4px 0 18px; font-size: 13px; color: var(--text-2); line-height: 1.5;
+  cursor: pointer; user-select: none;
+}
+.agreement input[type="checkbox"] {
+  width: 16px; height: 16px; margin-top: 2px; flex: 0 0 auto;
+  accent-color: var(--primary); cursor: pointer;
+}
+.agreement a { color: var(--primary); font-weight: 600; }
+.agreement a:hover { text-decoration: underline; }
 .btn-outline { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
 .btn-outline:hover { background: var(--primary-light); }
 .btn-ghost { background: transparent; color: var(--text-2); }
