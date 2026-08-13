@@ -347,7 +347,10 @@
   background: #fff; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; font-family: inherit; line-height: 1.4;
 }
 .wd-voucher-btn:hover { background: var(--primary); color: #fff; }
-.wd-reason { display: block; margin-top: 6px; font-size: 12px; color: #b91c1c; line-height: 1.6; }
+.wd-reason {
+  display: block; margin-top: 6px; font-size: 12px; color: #b91c1c;
+  line-height: 1.6; white-space: normal; word-break: break-all;
+}
 
 /* 提现记录弹窗：表格紧贴标题，无顶部留白 */
 #wdRecordMask .modal > div[style*="overflow"] {
@@ -358,6 +361,10 @@
 .wd-table th:nth-child(5), .wd-table td:nth-child(5) {
   min-width: 80px;
   text-align: center;
+}
+/* 提现状态列：给足宽度避免驳回原因过早换行 */
+.wd-table th:nth-child(4), .wd-table td:nth-child(4) {
+  min-width: 120px;
 }
 
 /* 提现弹窗：表单左右顶边贴边，去除留白（标题栏保留内边距） */
