@@ -2,8 +2,12 @@
    订单管理页专用样式（迭代 52）
    ============================================================ */
 
+/* ---------- 区块留白（筛选组件与卡片数据之间、各组件间距一致） ---------- */
+#summaryTiles { margin-bottom: 18px; grid-template-columns: repeat(3, 1fr); }
+.order-filter-panel { padding: 16px 20px; margin-bottom: 18px; }
+.order-list-panel { margin-bottom: 24px; }
+
 /* ---------- 筛选栏 ---------- */
-.order-filter-panel { padding: 16px 20px; }
 .order-filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -38,6 +42,28 @@
 .order-filter-row .filter-field select:focus {
   border-color: var(--primary);
 }
+/* 提交时间：时间段选择（起 ~ 止） */
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+}
+.date-range input[type="date"] {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color .15s;
+}
+.date-range input[type="date"]:focus { border-color: var(--primary); }
+.date-range .date-sep { color: var(--text-2); font-size: 13px; flex-shrink: 0; }
 .order-filter-actions {
   display: flex;
   gap: 10px;
@@ -47,7 +73,7 @@
 
 /* ---------- 列表 ---------- */
 .order-list-panel { min-height: 200px; }
-.order-table { min-width: 780px; }
+.order-table { width: 100%; min-width: 780px; }
 .order-table thead th {
   background: #f8fafc;
   font-size: 12px;
@@ -85,19 +111,31 @@
 .btn-detail {
   display: inline-block;
   font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
   color: var(--primary);
+  background: var(--primary-light, #eff4ff);
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  padding: 6px 12px;
   cursor: pointer;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color .15s;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: background .15s, color .15s;
 }
-.btn-detail:hover { border-bottom-color: var(--primary); }
+.btn-detail:hover { background: var(--primary); color: #fff; }
 
 /* 空状态 */
 .empty-state {
   text-align: center;
   padding: 50px 20px !important;
   color: var(--text-2);
+}
+.empty-state .empty-inner {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .empty-icon {
   font-size: 40px;

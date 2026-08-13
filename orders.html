@@ -51,22 +51,20 @@
             <option value="">全部</option>
             <option value="process">进行中</option>
             <option value="success">已完成</option>
-            <option value="fail">部分失败</option>
           </select>
         </div>
         <div class="filter-field">
           <label>提交时间</label>
-          <select id="fTime">
-            <option value="">全部</option>
-            <option value="today">今天</option>
-            <option value="7">近 7 天</option>
-            <option value="30">近 30 天</option>
-          </select>
+          <div class="date-range">
+            <input type="date" id="fTimeStart" aria-label="开始日期" />
+            <span class="date-sep">至</span>
+            <input type="date" id="fTimeEnd" aria-label="结束日期" />
+          </div>
         </div>
       </div>
       <div class="order-filter-actions">
         <button class="btn btn-primary" onclick="applyFilter()">查询</button>
-        <button class="btn btn-ghost" onclick="resetFilter()">重置</button>
+        <button class="btn btn-outline" onclick="resetFilter()">重置</button>
       </div>
     </div>
 
@@ -78,7 +76,7 @@
             <th style="width:150px">订单编号</th>
             <th style="width:80px">类型</th>
             <th style="width:60px">税费</th>
-            <th style="width:90px">成功/失败数</th>
+            <th style="width:100px">成功/失败/总数</th>
             <th style="width:120px">退款金额 / 支付总额</th>
             <th style="width:85px">状态</th>
             <th style="width:130px">提交时间</th>
@@ -112,12 +110,10 @@
       return orders.filter(function (o) { return o.status === status; }).length;
     }
 
-    // 状态徽标（订单级别）
+    // 状态徽标（订单级别）：仅 进行中 / 已完成 两种
     function orderStatusBadge(st) {
-      if (st === "success") return '<span class="badge success">已完成</span>';
-      if (st === "fail") return '<span class="badge fail">部分失败</span>';
-      if (st === "process" || st === "pending") return '<span class="badge process">进行中</span>';
-      return '<span class="badge gray">' + st + '</span>';
+      if (st === "success" || st === "fail") return '<span class="badge success">已完成</span>';
+      return '<span class="badge process">进行中</span>';
     }
 
     // 充值单条状态
@@ -156,8 +152,7 @@
       var tiles = [
         { n: orders.length, l: "订单数量", c: "" },
         { n: countBy(orders, "process") + countBy(orders, "pending"), l: "进行中", c: "blue" },
-        { n: countBy(orders, "success"), l: "已完成", c: "green" },
-        { n: countBy(orders, "fail"), l: "部分失败", c: "red" }
+        { n: countBy(orders, "success") + countBy(orders, "fail"), l: "已完成", c: "green" }
       ];
       document.getElementById("summaryTiles").innerHTML = tiles.map(function (t) {
         return '<div class="tile ' + t.c + '"><div class="n">' + t.n + '</div><div class="l">' + t.l + '</div></div>';
@@ -175,24 +170,24 @@
       var pageData = filtered.slice(start, start + PAGE_SIZE);
 
       if (!pageData.length) {
-        body.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">暂无订单记录</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-inner"><div class="empty-icon">📋</div><div class="empty-text">暂无订单记录</div></div></td></tr>';
         renderPagination(totalPages);
         return;
       }
 
       body.innerHTML = pageData.map(function (o) {
         var kindBadge = o.kind === "sms"
-          ? '<span class="badge info">短信</span>'
-          : '<span class="badge gray">充值</span>';
+          ? '<span class="badge info">短信群发</span>'
+          : '<span class="badge gray">话费充值</span>';
 
         var taxShort = getTaxShort(o.tax);
 
         // 成功/失败数
         var succ = o.details ? o.details.filter(function (d) { return d.status === "success"; }).length : 0;
         var fail = o.details ? o.details.filter(function (d) { return d.status === "fail"; }).length : 0;
-        var sfText = succ + '/' + fail;
+        var sfText = succ + '/' + fail + '/' + o.count;
 
-        // 退款金额 / 支付总额
+        // 退款金额 / 支付总额（均显示正数金额，如 ¥500.00 / ¥1000.00）
         var refundAmt = 0;
         if (fail > 0 && o.unitPrice) {
           refundAmt = Math.round(o.unitPrice * fail * 100) / 100;
@@ -201,8 +196,8 @@
           refundAmt = Math.round(o.face * unitRate * fail * 100) / 100;
         }
         var moneyCell = fail > 0
-          ? '<span class="refund-text">-' + App.fmtMoney(refundAmt) + '</span><br><span class="muted-sm">支付 ' + App.fmtMoney(o.total) + '</span>'
-          : '<span class="amount">' + App.fmtMoney(o.total) + '</span>';
+          ? App.fmtMoney(refundAmt) + ' / ' + App.fmtMoney(o.total)
+          : App.fmtMoney(o.total);
 
         return '<tr>' +
           '<td><span class="order-id-cell">' + o.id + '</span></td>' +
@@ -212,7 +207,7 @@
           '<td>' + moneyCell + '</td>' +
           '<td>' + orderStatusBadge(o.status) + '</td>' +
           '<td>' + o.createdAt + '</td>' +
-          '<td style="text-align:center"><a href="javascript:void(0)" class="btn-detail" onclick="openDetail(\'' + o.id + '\')">查看详情</a></td>' +
+          '<td style="text-align:center"><button type="button" class="btn-detail" onclick="openDetail(\'' + o.id + '\')">查看详情</button></td>' +
         '</tr>';
       }).join("");
 
@@ -242,7 +237,8 @@
       var kind = document.getElementById("fKind").value;
       var tax = document.getElementById("fTax").value;
       var st = document.getElementById("fStatus").value;
-      var time = document.getElementById("fTime").value;
+      var startStr = document.getElementById("fTimeStart").value;
+      var endStr = document.getElementById("fTimeEnd").value;
 
       filtered = DB.ORDERS.filter(function (o) {
         if (kind === "recharge" && o.kind === "sms") return false;
@@ -250,12 +246,16 @@
         if (tax && o.tax !== tax) return false;
         if (st && o.status !== st) return false;
         if (orderId && o.id.toUpperCase().indexOf(orderId) === -1) return false;
-        if (time) {
-          var daysAgo = new Date();
-          if (time === "today") daysAgo.setHours(0, 0, 0, 0);
-          else daysAgo.setDate(daysAgo.getDate() - Number(time));
+        if (startStr || endStr) {
           var created = new Date(o.createdAt.replace(/-/g, "/"));
-          if (created < daysAgo) return false;
+          if (startStr) {
+            var sd = new Date(startStr + " 00:00:00");
+            if (created < sd) return false;
+          }
+          if (endStr) {
+            var ed = new Date(endStr + " 23:59:59");
+            if (created > ed) return false;
+          }
         }
         return true;
       });
@@ -271,7 +271,8 @@
       document.getElementById("fKind").value = "";
       document.getElementById("fTax").value = "";
       document.getElementById("fStatus").value = "";
-      document.getElementById("fTime").value = "";
+      document.getElementById("fTimeStart").value = "";
+      document.getElementById("fTimeEnd").value = "";
       localStorage.removeItem("hc_order_filters");
       filtered = DB.ORDERS.slice();
       currentPage = 1;
@@ -287,7 +288,8 @@
           kind: document.getElementById("fKind").value,
           tax: document.getElementById("fTax").value,
           status: document.getElementById("fStatus").value,
-          time: document.getElementById("fTime").value
+          timeStart: document.getElementById("fTimeStart").value,
+          timeEnd: document.getElementById("fTimeEnd").value
         }));
       } catch(e) {}
     }
@@ -300,7 +302,8 @@
         document.getElementById("fKind").value = f.kind || "";
         document.getElementById("fTax").value = f.tax || "";
         document.getElementById("fStatus").value = f.status || "";
-        document.getElementById("fTime").value = f.time || "";
+        document.getElementById("fTimeStart").value = f.timeStart || "";
+        document.getElementById("fTimeEnd").value = f.timeEnd || "";
       } catch(e) {}
     }
 
