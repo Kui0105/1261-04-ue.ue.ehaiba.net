@@ -309,12 +309,25 @@
 
     /* ========== 充值订单详情 ========== */
     function renderRechargeDetail(o) {
-      var carrierObj = DB.CARRIERS.find(function (c) { return c.key === o.carrier; }) || {};
+      // 运营商：优先用订单自带，否则按订单号稳定随机分配四家之一
+      var carrierObj = null;
+      if (o.carrier) carrierObj = DB.CARRIERS.find(function (c) { return c.key === o.carrier; }) || null;
+      if (!carrierObj) {
+        var h = 0;
+        for (var ci = 0; ci < o.id.length; ci++) h = (h * 31 + o.id.charCodeAt(ci)) % DB.CARRIERS.length;
+        carrierObj = DB.CARRIERS[h];
+      }
+
+      // 单价 & 总额（总额 = 单价 × 号码数量）
       var unitRate = o.tax === "taxed" ? 1.06 : 1;
       var unit = o.face * unitRate;
-      var succ = o.details.filter(function (d) { return d.status === "success"; }).length;
-      var fail = o.details.filter(function (d) { return d.status === "fail"; }).length;
-      var proc = o.count - succ - fail;
+      var totalAmt = unit * o.count;
+
+      // 明细按订单状态规整（已完成订单无"充值中/待充值"）
+      var normDetails = getRechargeDetailsNorm(o);
+      var succ = normDetails.filter(function (d) { return d.status === "success"; }).length;
+      var fail = normDetails.filter(function (d) { return d.status === "fail"; }).length;
+      var proc = normDetails.filter(function (d) { return d.status === "process" || d.status === "pending"; }).length;
       var refundTotal = Math.round(unit * fail * 100) / 100;
 
       var html =
@@ -323,11 +336,11 @@
         '<table class="table detail-info-table"><tbody>' +
           '<tr><td class="info-label">订单号</td><td><b>' + o.id + '</b></td></tr>' +
           '<tr><td class="info-label">订单类型</td><td>话费充值</td></tr>' +
-          '<tr><td class="info-label">运营商</td><td>' + (carrierObj.label || "-") + '</td></tr>' +
+          '<tr><td class="info-label">运营商</td><td>' + carrierObj.label + '</td></tr>' +
           '<tr><td class="info-label">面额</td><td><b>' + o.face + ' 元</b></td></tr>' +
           '<tr><td class="info-label">税费类型</td><td>' + getTaxLabel(o.tax) + '</td></tr>' +
           '<tr><td class="info-label">单价</td><td class="amount">' + App.fmtMoney(unit) + '</td></tr>' +
-          '<tr><td class="info-label">总额</td><td class="amount">' + App.fmtMoney(o.total) + '</td></tr>' +
+          '<tr><td class="info-label">总额</td><td class="amount">' + App.fmtMoney(totalAmt) + '</td></tr>' +
           '<tr><td class="info-label">状态</td><td>' + orderStatusBadge(o.status) + '</td></tr>' +
           '<tr><td class="info-label">提交时间</td><td>' + o.createdAt + '</td></tr>' +
         '</tbody></table>' +
@@ -335,9 +348,9 @@
         // 卡片统计
         '<div class="tiles" style="margin-top:14px;margin-bottom:10px">' +
           '<div class="tile"><div class="n">' + o.count + '</div><div class="l">号码总数</div></div>' +
-          '<div class="tile blue"><div class="n">' + proc + '</div><div class="l">进行中数量</div></div>' +
-          '<div class="tile green"><div class="n">' + succ + '</div><div class="l">成功数量</div></div>' +
-          '<div class="tile red"><div class="n">' + fail + '</div><div class="l">失败数量</div></div>' +
+          '<div class="tile blue"><div class="n">' + proc + '</div><div class="l">充值中</div></div>' +
+          '<div class="tile green"><div class="n">' + succ + '</div><div class="l">充值成功</div></div>' +
+          '<div class="tile red"><div class="n">' + fail + '</div><div class="l">充值失败</div></div>' +
           '<div class="tile amber"><div class="n">' + App.fmtMoney(refundTotal) + '</div><div class="l">退款总额</div></div>' +
         '</div>' +
 
@@ -349,7 +362,6 @@
               '<option value="">全部状态</option>' +
               '<option value="success">充值成功</option>' +
               '<option value="fail">充值失败</option>' +
-              '<option value="pending">待充值</option>' +
               '<option value="process">充值中</option>' +
             '</select>' +
           '</div>' +
@@ -358,7 +370,7 @@
 
         // 明细列表
         '<div class="detail-list-wrap" id="detailListWrap">' +
-          buildRechargeDetailTable(o) +
+          buildRechargeDetailTable(normDetails) +
         '</div>' +
 
         '<div class="detail-footer-note">充值失败账号由第三方返回失败结果，系统自动原路退回对应金额至用户账户。</div>';
@@ -366,9 +378,9 @@
       return html;
     }
 
-    function buildRechargeDetailTable(o) {
+    function buildRechargeDetailTable(details) {
       return '<table class="table detail-sub-table"><thead><tr><th>手机号</th><th>状态</th><th>失败原因</th><th>回调时间</th></tr></thead><tbody>' +
-        o.details.map(function (d) {
+        details.map(function (d) {
           return '<tr data-phone="' + d.phone + '" data-status="' + d.status + '">' +
             '<td>' + d.phone + '</td>' +
             '<td>' + rechargeRowBadge(d.status) + '</td>' +
@@ -380,10 +392,10 @@
     }
 
     /* ========== 短信订单详情 ========== */
-    function renderSmsDetail(o) {
-      var succ = o.details.filter(function (d) { return d.status === "success"; }).length;
-      var fail = o.details.filter(function (d) { return d.status === "fail"; }).length;
-      var proc = o.count - succ - fail;
+    function renderSmsDetail(o, norm) {
+      var succ = norm.filter(function (d) { return d.status === "success"; }).length;
+      var fail = norm.filter(function (d) { return d.status === "fail"; }).length;
+      var proc = norm.filter(function (d) { return d.status === "process"; }).length;
       var refundTotal = Math.round(o.unitPrice * fail * 100) / 100;
 
       var html =
@@ -403,9 +415,9 @@
         // 卡片统计
         '<div class="tiles" style="margin-top:14px;margin-bottom:10px">' +
           '<div class="tile"><div class="n">' + o.count + '</div><div class="l">号码总数</div></div>' +
-          '<div class="tile blue"><div class="n">' + proc + '</div><div class="l">进行中数量</div></div>' +
-          '<div class="tile green"><div class="n">' + succ + '</div><div class="l">成功数量</div></div>' +
-          '<div class="tile red"><div class="n">' + fail + '</div><div class="l">失败数量</div></div>' +
+          '<div class="tile blue"><div class="n">' + proc + '</div><div class="l">发送中</div></div>' +
+          '<div class="tile green"><div class="n">' + succ + '</div><div class="l">发送成功</div></div>' +
+          '<div class="tile red"><div class="n">' + fail + '</div><div class="l">发送失败</div></div>' +
           '<div class="tile amber"><div class="n">' + App.fmtMoney(refundTotal) + '</div><div class="l">退款总额</div></div>' +
         '</div>' +
 
@@ -425,7 +437,7 @@
 
         // 明细列表
         '<div class="detail-list-wrap" id="detailListWrap">' +
-          buildSmsDetailTable(o) +
+          buildSmsDetailTable(norm) +
         '</div>' +
 
         '<div class="detail-footer-note">发送失败条数由第三方返回失败结果，系统自动原路退回对应金额至用户账户。</div>';
@@ -433,9 +445,9 @@
       return html;
     }
 
-    function buildSmsDetailTable(o) {
+    function buildSmsDetailTable(details) {
       return '<table class="table detail-sub-table"><thead><tr><th>手机号</th><th>状态</th><th>发送结果说明</th><th>回调时间</th></tr></thead><tbody>' +
-        o.details.map(function (d) {
+        details.map(function (d) {
           return '<tr data-phone="' + d.phone + '" data-status="' + d.status + '">' +
             '<td>' + d.phone + '</td>' +
             '<td>' + smsRowBadge(d.status) + '</td>' +
@@ -448,6 +460,59 @@
 
     /* ========== 打开详情 ========== */
     var currentDetailOrder = null;
+    var currentDetailNorm = null;
+
+    // 根据订单状态规整明细，保证订单状态与号码状态一致：
+    // - 已完成（success / fail 均显示"已完成"）：号码全部结束，不存在 充值中 / 待充值
+    // - 充值中（process / pending 均显示"充值中"）：号码已启动，不存在 待充值，且至少有一条仍在充值中
+    function getRechargeDetailsNorm(o) {
+      var displayDone = (o.status === "success" || o.status === "fail");
+      if (displayDone) {
+        return o.details.map(function (d) {
+          if (d.status === "process" || d.status === "pending") {
+            return { phone: d.phone, status: "success", reason: "", callbackAt: d.callbackAt || "-" };
+          }
+          return d;
+        });
+      }
+      var mapped = o.details.map(function (d) {
+        if (d.status === "pending") {
+          return { phone: d.phone, status: "process", reason: "", callbackAt: d.callbackAt || "-" };
+        }
+        return d;
+      });
+      var hasProcess = mapped.some(function (d) { return d.status === "process"; });
+      if (!hasProcess && mapped.length) {
+        mapped[0] = { phone: mapped[0].phone, status: "process", reason: "", callbackAt: mapped[0].callbackAt || "-" };
+      }
+      return mapped;
+    }
+
+    // 短信明细规整，与充值保持一致：
+    // - 已完成（success / fail 均显示"已完成"）：号码全部结束，不存在 发送中
+    // - 进行中（process / pending 均显示"进行中"）：号码已启动，且至少有一条仍在发送中
+    function getSmsDetailsNorm(o) {
+      var displayDone = (o.status === "success" || o.status === "fail");
+      if (displayDone) {
+        return o.details.map(function (d) {
+          if (d.status === "process" || d.status === "pending") {
+            return { phone: d.phone, status: "success", reason: "", callbackAt: d.callbackAt || "-" };
+          }
+          return d;
+        });
+      }
+      var mapped = o.details.map(function (d) {
+        if (d.status === "pending") {
+          return { phone: d.phone, status: "process", reason: "", callbackAt: d.callbackAt || "-" };
+        }
+        return d;
+      });
+      var hasProcess = mapped.some(function (d) { return d.status === "process"; });
+      if (!hasProcess && mapped.length) {
+        mapped[0] = { phone: mapped[0].phone, status: "process", reason: "", callbackAt: mapped[0].callbackAt || "-" };
+      }
+      return mapped;
+    }
 
     function openDetail(id) {
       var o = DB.ORDERS.find(function (x) { return x.id === id; });
@@ -455,9 +520,11 @@
       currentDetailOrder = o;
 
       if (o.kind === "sms") {
+        currentDetailNorm = getSmsDetailsNorm(o);
         document.getElementById("detailTitle").textContent = "短信订单详情 · " + id;
-        document.getElementById("detailBody").innerHTML = renderSmsDetail(o);
+        document.getElementById("detailBody").innerHTML = renderSmsDetail(o, currentDetailNorm);
       } else {
+        currentDetailNorm = getRechargeDetailsNorm(o);
         document.getElementById("detailTitle").textContent = "充值订单详情 · " + id;
         document.getElementById("detailBody").innerHTML = renderRechargeDetail(o);
       }
@@ -493,13 +560,13 @@
 
       if (kind === "recharge") {
         rows.push(["手机号", "状态", "失败原因", "回调时间"]);
-        o.details.forEach(function (d) {
+        (currentDetailNorm || o.details).forEach(function (d) {
           var stMap = { success: "充值成功", fail: "充值失败", pending: "待充值", process: "充值中" };
           rows.push([d.phone, stMap[d.status] || d.status, d.reason || "", d.callbackAt || ""]);
         });
       } else {
         rows.push(["手机号", "状态", "发送结果说明", "回调时间"]);
-        o.details.forEach(function (d) {
+        (currentDetailNorm || o.details).forEach(function (d) {
           var stMap = { success: "发送成功", fail: "发送失败", process: "发送中" };
           rows.push([d.phone, stMap[d.status] || d.status, d.reason || "", d.callbackAt || ""]);
         });

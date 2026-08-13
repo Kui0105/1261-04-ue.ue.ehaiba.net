@@ -115,7 +115,7 @@ window.MockDB = (function () {
 
   // 预置订单
   const ORDERS = [
-    { id: "ORD20260728001", face: 100, tax: "taxed", total: 106, count: 50, status: "success",
+    { id: "ORD20260728001", face: 100, tax: "taxed", total: 5300, count: 50, status: "success",
       createdAt: "2026-07-28 10:24", finishedAt: "2026-07-28 10:41", details: genDetails(50) },
     // 预置短信群发任务（演示）：部分失败 → 失败条数退款
     (function () {
@@ -130,6 +130,19 @@ window.MockDB = (function () {
         id: "SMS20260726018", kind: "sms", template: "订单状态提醒", category: "通知类",
         unitPrice: 0.045, tax: "untaxed", count: 30, total: 1.35, status: "fail",
         createdAt: "2026-07-26 16:40", finishedAt: "2026-07-26 16:58", details: d
+      };
+    })(),
+    // 进行中短信群发任务（演示）：包含 发送中 / 发送成功 / 发送失败 三种状态
+    (function () {
+      var d = genDetails(25);
+      // 保证进行中订单明细中存在 发送中 / 发送成功 / 发送失败
+      d[0].status = "process"; d[0].reason = ""; d[0].callbackAt = "";
+      d[1].status = "success"; d[1].reason = ""; d[1].callbackAt = "2026-08-12 15:30";
+      d[2].status = "fail"; d[2].reason = FAIL_REASONS[0]; d[2].callbackAt = "2026-08-12 15:30";
+      return {
+        id: "SMS20260812001", kind: "sms", template: "会员日大促", category: "营销类",
+        unitPrice: 0.05, tax: "untaxed", count: 25, total: 1.25, status: "process",
+        createdAt: "2026-08-12 15:20", finishedAt: "", details: d
       };
     })(),
     { id: "ORD20260727012", face: 50, tax: "untaxed", total: 2500, count: 50, status: "process",
