@@ -315,6 +315,9 @@
 
     /* ========== 审核状态展示 ========== */
     function showReviewStatus(status, rejectReason) {
+      // 仅展示审核状态区，隐藏申请表单与代理商中心（避免切换页面回来时两者叠加显示）
+      document.getElementById("applyPanel").style.display = "none";
+      document.getElementById("agentMain").style.display = "none";
       var panel = document.getElementById("reviewPanel");
       var content = document.getElementById("reviewStatusContent");
       panel.style.display = "";
@@ -342,19 +345,20 @@
 
     /* ========== 重新申请 ========== */
     function reapply() {
-      // 清理旧状态，回到表单
+      // 保留 agentApplyData 用于回填；清理审核状态回到表单
+      var saved = s.agentApplyData || {};
       delete s.agentStatus;
       delete s.agentRejectReason;
       delete s.isAgent;
-      delete s.agentApplyData;
       DB.setSession(s);
 
-      // 清空表单
-      document.getElementById("realName").value = "";
-      document.getElementById("contactPhone").value = "";
-      document.getElementById("contactEmail").value = "";
-      document.getElementById("agreeCheck").checked = false;
-      // 重置营业执照上传区
+      // 回填驳回时填写的表单内容
+      document.getElementById("realName").value = saved.realName || "";
+      document.getElementById("contactPhone").value = saved.contactPhone || "";
+      document.getElementById("contactEmail").value = saved.contactEmail || "";
+      document.getElementById("agreeCheck").checked = true; // 之前已同意，恢复勾选便于直接重提
+
+      // 重置营业执照上传区（文件无法程序回填，恢复默认态）
       var uploadEl = document.getElementById("licenseUpload");
       uploadEl.classList.remove("has-file");
       document.getElementById("licenseIcon").textContent = "📄";
@@ -362,7 +366,7 @@
         '点击上传营业执照图片<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>';
 
       showApplyForm();
-      App.toast("已重置申请表单，请重新填写提交");
+      App.toast("已恢复驳回前填写的内容，修改后可重新提交");
     }
 
     /* ========== 代理商中心（原有逻辑保留） ========== */
