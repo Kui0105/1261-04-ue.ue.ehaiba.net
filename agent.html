@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>代理商中心 · 话费代充系统</title>
+  <title>代理申请 · 话费代充系统</title>
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/agent.css" />
 </head>
 <body>
   <script src="assets/js/data.js"></script>
@@ -12,15 +13,57 @@
   <script>if (!App.requireLogin("agent")) document.write("");</script>
 
   <div class="container page">
+    <!-- 页面标题 -->
     <div class="page-head">
-      <h1>代理商中心</h1>
-      <p>代理商不是独立身份 —— 个人用户与企业用户均可申请成为代理商，解锁推广与佣金功能。</p>
+      <h1>代理申请</h1>
+      <p>用户提交代理商入驻申请，填写身份与资质信息。</p>
     </div>
 
-    <!-- 未申请代理商：提示 + 申请入口 -->
-    <div id="applyBox"></div>
+    <!-- ===== 申请表单（未提交 / 驳回后重新申请） ===== -->
+    <div class="panel" id="applyPanel">
+      <h3 style="margin-bottom:18px">申请表单</h3>
+      <div class="apply-form">
+        <div class="field">
+          <label>真实姓名 <span class="field-hint">（与身份证一致）</span></label>
+          <input type="text" id="realName" placeholder="请输入真实姓名" maxlength="20" />
+        </div>
+        <div class="field">
+          <label>联系电话 <span class="field-hint">（用于接收审核通知）</span></label>
+          <input type="text" id="contactPhone" placeholder="请输入手机号码" maxlength="11" />
+        </div>
+        <div class="field">
+          <label>联系邮箱 <span class="field-hint">（用于接收合同电子件）</span></label>
+          <input type="text" id="contactEmail" placeholder="请输入邮箱地址" />
+        </div>
+        <div class="field">
+          <label>营业执照 <span class="field-hint">（企业用户必传，个人用户可跳过）</span></label>
+          <div class="license-upload" id="licenseUpload" onclick="document.getElementById('licenseFile').click()">
+            <div class="license-icon" id="licenseIcon">📄</div>
+            <div class="license-text" id="licenseText">
+              点击上传营业执照图片<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>
+            </div>
+            <input type="file" id="licenseFile" accept=".jpg,.jpeg,.png" style="display:none" onchange="handleLicenseFile(event)" />
+          </div>
+        </div>
 
-    <!-- 已申请：代理商功能 -->
+        <!-- 协议勾选 -->
+        <div class="agree-row">
+          <input type="checkbox" id="agreeCheck" />
+          <label class="agree-label" for="agreeCheck">
+            我已阅读并同意 <a onclick="openAgreement()">《代理商合作协议》</a>，承诺所填信息真实有效，愿意遵守平台代理商管理规范。
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" id="submitApplyBtn" onclick="submitApplication()" style="margin-top:18px">提交申请</button>
+      </div>
+    </div>
+
+    <!-- ===== 审核状态展示区（提交后显示） ===== -->
+    <div class="panel" id="reviewPanel" style="display:none">
+      <div class="review-status" id="reviewStatusContent"></div>
+    </div>
+
+    <!-- ===== 已通过：代理商中心功能 ===== -->
     <div id="agentMain" style="display:none">
       <!-- 推广数据 -->
       <div class="tiles" id="agentTiles" style="margin-bottom:18px"></div>
@@ -103,7 +146,18 @@
     </div>
   </div>
 
-  <!-- 直推 / 间推成员明细弹窗 -->
+  <!-- ========== 代理商合作协议弹窗 ========== -->
+  <div class="modal-mask" id="agreementMask">
+    <div class="modal" style="max-width:580px">
+      <h3>代理商合作协议<button class="x" onclick="closeAgreement()">×</button></h3>
+      <div class="agreement-body" id="agreementBody"></div>
+      <div class="modal-foot" style="display:flex;justify-content:center;padding-bottom:24px">
+        <button class="btn btn-primary" onclick="checkAgreeAndClose()">我已阅读并同意</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 直推 / 间推成员明细弹窗 ========== -->
   <div class="modal-mask" id="referralMask">
     <div class="modal" style="max-width:560px">
       <h3><span id="referralTitle">推广成员</span><button class="x" onclick="closeReferral()">×</button></h3>
@@ -122,22 +176,201 @@
     var DB = App.DB;
     var s = App.getSession() || {};
 
-    function renderApplyBox() {
-      if (s.isAgent) { document.getElementById("applyBox").style.display = "none"; return; }
-      document.getElementById("applyBox").innerHTML =
-        '<div class="banner">' +
-          '<div class="txt"><b>您尚未申请成为代理商</b>' +
-          '<p>当前为' + (s.type === "enterprise" ? "企业" : "个人") + '用户。申请成为代理商后，可生成推广链接、查看佣金明细并提交提现。</p></div>' +
-          '<button class="btn btn-primary" onclick="applyAgent()">申请成为代理商</button>' +
-        '</div>';
+    /* ========== 协议内容 ========== */
+    var AGREEMENT_TEXT =
+      '<h4>第一章 总则</h4>' +
+      '<p>本协议是用户（以下简称"乙方"）与平台运营方（以下简称"甲方"）就代理商合作事宜达成的法律约束文件。乙方在提交申请前应仔细阅读本协议全部条款。</p>' +
+      '<h4>第二章 合作模式</h4>' +
+      '<ol>' +
+        '<li>乙方作为甲方平台的推广代理商，负责在授权范围内开展业务推广活动。</li>' +
+        '<li>甲方为乙方提供专属推广链接及二维码，客户通过该渠道注册后将自动关联至乙方名下。</li>' +
+        '<li>合作采用两级分销模式：直推佣金比例为充值金额的 3‰，间推佣金比例为 2‰。</li>' +
+        '<li>仅推广的<strong>企业用户</strong>产生的充值行为计入佣金结算；个人用户推广不产生佣金。</li>' +
+      '</ol>' +
+      '<h4>第三章 权利与义务</h4>' +
+      '<ul>' +
+        '<li><strong>甲方权利：</strong>有权对乙方的推广行为进行监督，对违规操作有权暂停或终止合作。</li>' +
+        '<li><strong>甲方义务：</strong>按时结算佣金、提供推广素材及技术支持、保障系统稳定运行。</li>' +
+        '<li><strong>乙方权利：</strong>有权查看推广数据及佣金明细、随时申请佣金提现。</li>' +
+        '<li><strong>乙方义务：</strong>保证所提供信息真实有效、不得进行虚假宣传、不得恶意刷单套取佣金。</li>' +
+      '</ul>' +
+      '<h4>第四章 佣金结算</h4>' +
+      '<p>佣金按月结算，每月 5 日前生成上月佣金账单。乙方可在代理商中心提交提现申请，经财务审核后批量转账至乙方指定银行账户。最低提现金额为 ¥100.00。</p>' +
+      '<h4>第五章 协议终止</h4>' +
+      '<p>任何一方均可提前 30 日书面通知对方终止本协议。协议终止后，乙方已产生但未结算的佣金将在下一个结算周期内完成支付。</p>';
+
+    /* ========== 初始化：根据当前状态渲染页面 ========== */
+    (function initAgentPage() {
+      // 渲染协议内容
+      document.getElementById("agreementBody").innerHTML = AGREEMENT_TEXT;
+
+      var appStatus = s.agentStatus || ""; // "" | "pending" | "approved" | "rejected"
+
+      if (appStatus === "approved") {
+        // 已通过 → 显示代理商中心
+        showAgentCenter();
+      } else if (appStatus === "pending") {
+        // 审核中 → 显示审核中状态
+        showReviewStatus("pending");
+      } else if (appStatus === "rejected") {
+        // 已驳回 → 显示驳回状态 + 原因 + 重新申请
+        showReviewStatus("rejected", s.agentRejectReason || "您的资质不符合代理商入驻要求，请完善资料后重新申请。");
+      } else {
+        // 未申请 → 显示申请表单
+        showApplyForm();
+      }
+    })();
+
+    /* ========== 申请表单 ========== */
+    function showApplyForm() {
+      document.getElementById("applyPanel").style.display = "";
+      document.getElementById("reviewPanel").style.display = "none";
+      document.getElementById("agentMain").style.display = "none";
     }
 
-    function applyAgent() {
-      if (!confirm("确认申请成为代理商？\n申请后可在代理商中心查看推广素材、佣金明细并提交提现，该操作不可撤销。")) return;
-      s.isAgent = true;
+    function submitApplication() {
+      // 校验表单
+      var realName = document.getElementById("realName").value.trim();
+      var contactPhone = document.getElementById("contactPhone").value.trim();
+      var contactEmail = document.getElementById("contactEmail").value.trim();
+      var agreeChecked = document.getElementById("agreeCheck").checked;
+
+      if (!realName) { App.toast("请输入真实姓名"); return; }
+      if (!contactPhone) { App.toast("请输入联系电话"); return; }
+      if (!/^1\d{10}$/.test(contactPhone)) { App.toast("请输入正确的手机号码"); return; }
+      if (!contactEmail) { App.toast("请输入联系邮箱"); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { App.toast("请输入正确的邮箱地址"); return; }
+      if (!agreeChecked) { App.toast("请先勾选同意《代理商合作协议》"); return; }
+
+      // 提交 → 进入审核中状态
+      s.agentStatus = "pending";
+      s.agentApplyData = { realName: realName, contactPhone: contactPhone, contactEmail: contactEmail };
       DB.setSession(s);
-      App.toast("已提交代理商申请，功能已解锁");
-      location.reload();
+
+      // 切换到审核中 UI
+      document.getElementById("applyPanel").style.display = "none";
+      document.getElementById("reviewPanel").style.display = "";
+      showReviewStatus("pending");
+
+      // 模拟 3 秒审核（按电话号码判定结果）
+      setTimeout(function () {
+        doReviewResult(contactPhone);
+      }, 3000);
+    }
+
+    /* ========== 营业执照上传（原型模拟） ========== */
+    function handleLicenseFile(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var name = file.name.toLowerCase();
+      if (!name.match(/\.(jpg|jpeg|png)$/)) {
+        App.toast("仅支持 JPG / PNG 格式图片");
+        return;
+      }
+      // 原型：模拟上传成功
+      var uploadEl = document.getElementById("licenseUpload");
+      uploadEl.classList.add("has-file");
+      document.getElementById("licenseIcon").textContent = "✅";
+      document.getElementById("licenseText").innerHTML =
+        '<b style="color:var(--success)">' + App.escapeHtml(file.name) + '</b><br><span style="color:var(--text-2)">点击重新选择</span>';
+      App.toast("营业执照图片已上传（原型演示）");
+    }
+
+    /* ========== 审核结果处理 ========== */
+    function doReviewResult(phone) {
+      // 规则：13100000001 → 通过；13100000002 → 驳回
+      if (phone === "13100000001") {
+        // 通过
+        s.agentStatus = "approved";
+        s.isAgent = true;
+        delete s.agentRejectReason;
+        DB.setSession(s);
+
+        // 切换到代理商中心
+        document.getElementById("reviewPanel").style.display = "none";
+        showAgentCenter();
+        App.toast("恭喜！您的代理商申请已审核通过");
+      } else if (phone === "13100000002") {
+        // 驳回
+        s.agentStatus = "rejected";
+        s.agentRejectReason =
+          "经平台审核，您提交的联系方式关联账户存在异常交易记录，暂不符合代理商入驻要求。" +
+          "建议：完善企业资质材料（如提供加盖公章的营业执照扫描件），或等待 30 天后重新申请。";
+        delete s.isAgent;
+        DB.setSession(s);
+
+        // 显示驳回状态
+        showReviewStatus("rejected", s.agentRejectReason);
+      } else {
+        // 其他号码默认通过（原型友好）
+        s.agentStatus = "approved";
+        s.isAgent = true;
+        delete s.agentRejectReason;
+        DB.setSession(s);
+        document.getElementById("reviewPanel").style.display = "none";
+        showAgentCenter();
+        App.toast("恭喜！您的代理商申请已审核通过");
+      }
+    }
+
+    /* ========== 审核状态展示 ========== */
+    function showReviewStatus(status, rejectReason) {
+      var panel = document.getElementById("reviewPanel");
+      var content = document.getElementById("reviewStatusContent");
+      panel.style.display = "";
+
+      if (status === "pending") {
+        content.innerHTML =
+          '<div class="review-status-icon review-spinning">⏳</div>' +
+          '<div class="review-status-title">审核中</div>' +
+          '<div class="review-status-desc">' +
+            '您的代理商申请已提交，平台正在审核中…<br>' +
+            '预计 1-3 个工作日内完成审核，请耐心等待。' +
+          '</div>';
+      } else if (status === "rejected") {
+        content.innerHTML =
+          '<div class="review-status-icon">❌</div>' +
+          '<div class="review-status-title" style="color:var(--danger)">审核驳回</div>' +
+          '<div class="review-status-desc">很抱歉，您的代理商申请未通过平台审核。</div>' +
+          '<div class="reject-reason-card">' +
+            '<div class="rr-label">驳回原因</div>' +
+            '<div class="rr-text">' + App.escapeHtml(rejectReason || "") + '</div>' +
+          '</div>' +
+          '<button class="btn btn-primary" onclick="reapply()" style="padding:10px 32px">重新申请</button>';
+      }
+    }
+
+    /* ========== 重新申请 ========== */
+    function reapply() {
+      // 清理旧状态，回到表单
+      delete s.agentStatus;
+      delete s.agentRejectReason;
+      delete s.isAgent;
+      delete s.agentApplyData;
+      DB.setSession(s);
+
+      // 清空表单
+      document.getElementById("realName").value = "";
+      document.getElementById("contactPhone").value = "";
+      document.getElementById("contactEmail").value = "";
+      document.getElementById("agreeCheck").checked = false;
+      // 重置营业执照上传区
+      var uploadEl = document.getElementById("licenseUpload");
+      uploadEl.classList.remove("has-file");
+      document.getElementById("licenseIcon").textContent = "📄";
+      document.getElementById("licenseText").innerHTML =
+        '点击上传营业执照图片<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>';
+
+      showApplyForm();
+      App.toast("已重置申请表单，请重新填写提交");
+    }
+
+    /* ========== 代理商中心（原有逻辑保留） ========== */
+    function showAgentCenter() {
+      document.getElementById("applyPanel").style.display = "none";
+      document.getElementById("reviewPanel").style.display = "none";
+      document.getElementById("agentMain").style.display = "";
+      renderAgent();
     }
 
     function renderAgent() {
@@ -236,11 +469,17 @@
       document.getElementById("wdCard").value = "";
     }
 
-    // 初始化
-    renderApplyBox();
-    if (s.isAgent) {
-      document.getElementById("agentMain").style.display = "";
-      renderAgent();
+    /* ========== 代理协议弹窗 ========== */
+    function openAgreement() {
+      document.getElementById("agreementMask").classList.add("show");
+    }
+    function closeAgreement() {
+      document.getElementById("agreementMask").classList.remove("show");
+    }
+    function checkAgreeAndClose() {
+      document.getElementById("agreeCheck").checked = true;
+      closeAgreement();
+      App.toast("已勾选同意《代理商合作协议》");
     }
   </script>
 </body>

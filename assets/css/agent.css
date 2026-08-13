@@ -1,0 +1,189 @@
+/* ========== 代理申请页专用样式 ========== */
+
+/* 申请表单面板 */
+.apply-form .field {
+  margin-bottom: 16px;
+}
+.apply-form .field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.apply-form .field label .field-hint {
+  font-weight: 400;
+  color: var(--text-2);
+  margin-left: 4px;
+}
+.apply-form .field input,
+.apply-form .field textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color .15s;
+  background: #fff;
+}
+.apply-form .field input:focus,
+.apply-form .field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+
+/* 营业执照上传区 */
+.license-upload {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: #fafbfc;
+}
+.license-upload:hover {
+  border-color: var(--primary);
+  background: #f0f4ff;
+}
+.license-upload.has-file {
+  border-style: solid;
+  border-color: var(--success);
+  background: #f0fdf4;
+}
+.license-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+.license-text {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.license-text b {
+  color: var(--primary);
+}
+
+/* 协议勾选行 */
+.agree-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.agree-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.agree-label {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.7;
+}
+.agree-label a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.agree-label a:hover {
+  text-decoration: underline;
+}
+
+/* 审核状态区域 */
+.review-status {
+  text-align: center;
+  padding: 40px 24px;
+}
+.review-status-icon {
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+.review-status-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.review-status-desc {
+  font-size: 14px;
+  color: var(--text-2);
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+/* 驳回原因卡片 */
+.reject-reason-card {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: left;
+  margin: 0 auto 24px;
+  max-width: 420px;
+}
+.reject-reason-card .rr-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.reject-reason-card .rr-text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* 审核中动画 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.review-spinning {
+  animation: spin 1.2s linear infinite;
+  display: inline-block;
+}
+
+/* 协议弹窗内容 */
+.agreement-body {
+  padding: 4px 0 20px;
+  font-size: 13px;
+  line-height: 2;
+  color: var(--text);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.agreement-body h4 {
+  font-size: 15px;
+  margin: 18px 0 8px;
+  color: var(--text);
+}
+.agreement-body h4:first-child {
+  margin-top: 4px;
+}
+.agreement-body p {
+  margin: 0 0 8px;
+  text-indent: 2em;
+}
+.agreement-body ol,
+.agreement-body ul {
+  padding-left: 22px;
+  margin: 8px 0;
+}
+.agreement-body li {
+  margin-bottom: 4px;
+}
+
+@media (max-width: 560px) {
+  .review-status { padding: 30px 16px; }
+  .reject-reason-card { margin-left: 12px; margin-right: 12px; }
+  .agreement-body { font-size: 12.5px; }
+}
