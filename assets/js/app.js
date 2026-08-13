@@ -47,6 +47,103 @@ window.App = (function () {
   }
   function logout() { localStorage.removeItem("hc_session"); }
 
+  /* ---------- 修改密码弹窗（全局注入，所有受保护页面通用） ---------- */
+  var editPwdSentCode = "";
+  var editPwdCodeTimer = null;
+  var EDIT_PWD_HTML =
+    '<div class="modal-mask" id="editPwdMask">' +
+      '<div class="modal" style="max-width:440px">' +
+        '<h3>修改密码<button class="x" onclick="closeEditPwdModal()">×</button></h3>' +
+        '<div class="apply-form" style="margin-top:14px">' +
+          '<div class="field"><label>手机号</label><input type="text" id="editPwdPhone" placeholder="请输入绑定手机号" maxlength="11" /></div>' +
+          '<div class="field"><label>短信验证码</label><div class="code-row">' +
+            '<input type="text" id="editPwdCode" placeholder="请输入验证码" maxlength="6" />' +
+            '<button type="button" class="btn btn-outline btn-sm" id="editPwdSendCodeBtn" onclick="sendEditPwdCode()">获取验证码</button>' +
+          '</div></div>' +
+          '<div class="field"><label>新密码</label><input type="password" id="editPwdNew" placeholder="请输入新密码（6-20位）" maxlength="20" /></div>' +
+          '<div class="field"><label>确认新密码</label><input type="password" id="editPwdConfirm" placeholder="请再次输入新密码" maxlength="20" /></div>' +
+          '<div style="display:flex;gap:10px;margin-top:4px">' +
+            '<button class="btn btn-outline btn-block" style="flex:1" onclick="closeEditPwdModal()">取消</button>' +
+            '<button class="btn btn-primary btn-block" style="flex:1" onclick="doEditPwdSubmit()">确认修改</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  function injectEditPwdModal() {
+    if (document.getElementById("editPwdMask")) return;
+    if (document.body) document.body.insertAdjacentHTML("beforeend", EDIT_PWD_HTML);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", injectEditPwdModal);
+  } else {
+    injectEditPwdModal();
+  }
+
+  function openEditPwdModal() {
+    var sess = getSession() || {};
+    var mask = document.getElementById("editPwdMask");
+    if (!mask) { injectEditPwdModal(); mask = document.getElementById("editPwdMask"); }
+    if (!mask) return;
+    document.getElementById("editPwdPhone").value = sess.phone || "";
+    document.getElementById("editPwdCode").value = "";
+    document.getElementById("editPwdNew").value = "";
+    document.getElementById("editPwdConfirm").value = "";
+    resetEditPwdCodeBtn();
+    mask.classList.add("show");
+  }
+  function closeEditPwdModal() {
+    var mask = document.getElementById("editPwdMask");
+    if (mask) mask.classList.remove("show");
+  }
+
+  function sendEditPwdCode() {
+    var phone = document.getElementById("editPwdPhone").value.trim();
+    if (!phone || !/^1\d{10}$/.test(phone)) { toast("请输入正确的手机号"); return; }
+    if (editPwdCodeTimer) return;
+    editPwdSentCode = "111111";
+    toast("验证码已发送（演示验证码：111111）");
+    var btn = document.getElementById("editPwdSendCodeBtn");
+    var sec = 60;
+    btn.disabled = true; btn.textContent = sec + "s";
+    editPwdCodeTimer = setInterval(function () {
+      sec--;
+      if (sec <= 0) { clearInterval(editPwdCodeTimer); editPwdCodeTimer = null; btn.disabled = false; btn.textContent = "获取验证码"; }
+      else { btn.textContent = sec + "s"; }
+    }, 1000);
+  }
+  function resetEditPwdCodeBtn() {
+    if (editPwdCodeTimer) { clearInterval(editPwdCodeTimer); editPwdCodeTimer = null; }
+    var btn = document.getElementById("editPwdSendCodeBtn");
+    if (btn) { btn.disabled = false; btn.textContent = "获取验证码"; }
+  }
+
+  function doEditPwdSubmit() {
+    var phone = document.getElementById("editPwdPhone").value.trim();
+    var code = document.getElementById("editPwdCode").value.trim();
+    var newPwd = document.getElementById("editPwdNew").value;
+    var confirmPwd = document.getElementById("editPwdConfirm").value;
+    if (!/^1\d{10}$/.test(phone)) { toast("请输入正确的手机号"); return; }
+    if (!code) { toast("请输入短信验证码"); return; }
+    if (!editPwdSentCode) { toast("请先获取验证码"); return; }
+    if (code !== editPwdSentCode) { toast("验证码错误"); return; }
+    if (!newPwd || newPwd.length < 6 || newPwd.length > 20) { toast("新密码长度需为 6-20 位"); return; }
+    if (newPwd !== confirmPwd) { toast("两次输入的密码不一致"); return; }
+    // 修改成功后退出登录，需重新登录
+    closeEditPwdModal();
+    toast("密码修改成功，正在退出登录…");
+    setTimeout(function () {
+      logout();
+      try { location.href = "login.html"; } catch (e) { location.reload(); }
+    }, 1200);
+  }
+
+  // 供弹窗内联 onclick 调用（app.js 在 IIFE 内，需挂到 window）
+  window.openEditPwdModal = openEditPwdModal;
+  window.closeEditPwdModal = closeEditPwdModal;
+  window.sendEditPwdCode = sendEditPwdCode;
+  window.doEditPwdSubmit = doEditPwdSubmit;
+
   // 默认演示账号（方便评审直接进入系统）
   function ensureDemoAccount() {
     if (!isLogin()) {

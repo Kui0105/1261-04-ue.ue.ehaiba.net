@@ -5,7 +5,30 @@
 
 ---
 
-## 2026-08-13（迭代 73）佣金明细筛选拆分为单号/来源用户 + 提现弹窗表单去留白
+## 2026-08-13（迭代 75）编辑弹窗全局化 + 改密后退出登录
+
+- **1. 编辑（修改密码）弹窗全局化，5 个受保护页面均可打开**：
+  - 将原先仅在 `agent.html` 内的 `#editPwdMask` 弹窗 HTML 及其 5 个 JS 函数（`openEditPwdModal` / `closeEditPwdModal` / `sendEditPwdCode` / `resetEditPwdCodeBtn` / `doEditPwdSubmit`）、两个变量（`editPwdSentCode` / `editPwdCodeTimer`）**整体迁移到 `app.js`**。
+  - `app.js` 新增 `EDIT_PWD_HTML` 常量，并在 `DOMContentLoaded`（或脚本已就绪时立即）通过 `injectEditPwdModal()` 把弹窗注入 `document.body`，注入前判断 `#editPwdMask` 是否已存在，避免重复注入。
+  - `renderTopbar()` 本就向所有受保护页面注入「编辑」按钮并绑定 `openEditPwdModal()`，而 `requireLogin()` 在 话费充值 / 短信群发 / 订单管理 / 账户中心 / 代理商中心 5 个页面均被调用 → 编辑按钮与修改密码弹窗现在**5 个页面通用**。
+  - 因 `app.js` 为 IIFE，弹窗内联 `onclick`（`open/closeEditPwdModal`、`sendEditPwdCode`、`doEditPwdSubmit`）需显式挂到 `window` 供 HTML 解析器调用，已在 IIFE 末尾统一 `window.xxx = xxx`。
+- **2. 密码修改成功后退出登录，需重新登录**：
+  - `doEditPwdSubmit()` 在校验全部通过后 `closeEditPwdModal()` → toast「密码修改成功，正在退出登录…」→ 1200ms 后 `logout()` 清除 `hc_session` 并 `location.href="login.html"`，强制重新登录。
+- 校验：agent.html 已无 `editPwd*` 残留引用（Grep 0 命中）；app.js / data.js `node --check` 通过；5 个页面均经 `requireLogin` → 编辑按钮与弹窗可正常触发。
+
+---
+
+## 2026-08-13（迭代 74）提现记录驳回原因列宽修复（避免 ~4 字换行）
+
+- **根因**：`wd-table` 的「提现状态」列（第 4 列）无 `min-width` 约束，表格布局算法将空间优先分配给其他列，导致驳回原因文字在极窄宽度下 ~4 个字符就强制换行，样式错乱。
+- **修复**：
+  - 第 4 列（`th:nth-child(4)` / `td:nth-child(4)`）新增 `min-width:120px`，保证驳回原因文本有足够展示空间。
+  - `.wd-reason` 补充 `white-space:normal; word-break:break-all`，确保长文本按词/字正常断行而非异常截断。
+- 本地提交 `f5180b5`（1 文件，+8/-1）。⚠️ 推送失败（同前）。
+
+---
+
+## 2026-08-13（迭代 73）佣金筛选拆分 + 提现弹窗贴边
 
 - **1. 佣金明细筛选「单号 / 来源用户」拆分为两个独立筛选项**：
   - 筛选栏原单一「单号 / 来源用户」输入框（`consKw`，同时匹配 id 与 member）拆成 **单号**（`consId`）与 **来源用户**（`consMember`）两个独立 `filter-field`。
