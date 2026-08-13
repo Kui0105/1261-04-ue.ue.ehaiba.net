@@ -181,6 +181,10 @@
 }
 .detail-section-title:first-child { margin-top: 4px; }
 
+/* 短信模板卡片（与「短信群发 → 选择模板」列表展示一致） */
+.sms-tpl-sig { font-size: 13px; color: var(--text-2); margin: 2px 0 6px; }
+.sms-tpl-sig b { color: var(--text-1); }
+
 /* 基本信息表格 */
 .detail-info-table {
   margin-bottom: 0;

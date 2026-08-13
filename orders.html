@@ -409,8 +409,21 @@
           '<tr><td class="info-label">总额</td><td class="amount">' + App.fmtMoney(o.total) + '</td></tr>' +
           '<tr><td class="info-label">状态</td><td>' + orderStatusBadge(o.status) + '</td></tr>' +
           '<tr><td class="info-label">提交时间</td><td>' + o.createdAt + '</td></tr>' +
-          '<tr><td class="info-label">短信模板</td><td><b>' + App.escapeHtml(o.template) + '</b></td></tr>' +
         '</tbody></table>' +
+        // 短信模板卡片：展示方式与「短信群发 → 选择模板」列表一致（模板名 + 短信签名 + 模板内容）
+        (function () {
+          var tp = (DB.SMS_TEMPLATES || []).find(function (x) { return x.name === o.template; });
+          var tplName = tp ? tp.name : o.template;
+          var sig = (tp && tp.signature) ? tp.signature : "海拔科技";
+          var content = tp ? tp.content : "";
+          return '<div class="detail-section-title">短信模板</div>' +
+            '<div class="sms-tpl-picked">' +
+              '<div class="sms-tpl-picked-head"><b>' + App.escapeHtml(tplName) + '</b></div>' +
+              '<div class="sms-tpl-sig">短信签名：<b>' + App.escapeHtml(sig) + '</b></div>' +
+              '<div class="sms-tpl-content">' + App.escapeHtml(content) + '</div>' +
+              '<div class="sms-tpl-picked-foot">单条价格 <b>' + App.fmtMoney(o.unitPrice) + '</b> · ' + getTaxLabel(o.tax) + '</div>' +
+            '</div>';
+        })() +
 
         // 卡片统计
         '<div class="tiles" style="margin-top:14px;margin-bottom:10px">' +

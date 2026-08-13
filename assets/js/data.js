@@ -185,14 +185,16 @@ window.MockDB = (function () {
   // price 为「未税」基准单价（元/条）；含税时页面按 ×1.06 展示（与话费充值一致）
   // 短信模板（均为后台预创建、定价的专属营销短信，前端只读不可改）
   const SMS_TEMPLATES = [
-    { id: "T1", name: "会员日大促",
+    { id: "T1", name: "会员日大促", signature: "海拔科技",
       content: "【海拔科技】会员日专享：话费充值满100减10，再送5元券！点击 hc.ehaiba.com 立享，回TD退订。", price: 0.055 },
-    { id: "T2", name: "周年庆狂欢",
+    { id: "T2", name: "周年庆狂欢", signature: "海拔科技",
       content: "【海拔科技】周年庆狂欢！全场话费充值8折，老用户专属福利，速戳 aaa.com，回TD退订。", price: 0.060 },
-    { id: "T3", name: "节日礼遇",
+    { id: "T3", name: "节日礼遇", signature: "海拔科技",
       content: "【海拔科技】中秋礼遇：充值100元送5元，限时3天！错过等一年，戳 hc.ehaiba.com，回TD退订。", price: 0.058 },
-    { id: "T4", name: "专属福利券",
-      content: "【海拔科技】您的专属福利券已到账（满50减3），本月底失效。立即使用 hc.ehaiba.com，回TD退订。", price: 0.052 }
+    { id: "T4", name: "专属福利券", signature: "海拔科技",
+      content: "【海拔科技】您的专属福利券已到账（满50减3），本月底失效。立即使用 hc.ehaiba.com，回TD退订。", price: 0.052 },
+    { id: "T5", name: "订单状态提醒", signature: "海拔科技", category: "通知类",
+      content: "【海拔科技】您尾号0000的订单状态已更新，点击 ehaiba.com 查看详情，回TD退订。", price: 0.045 }
   ];
 
   // 代理商直推成员（一级下线）；recharge 为该成员累计充值金额基数（仅企业用户据此产生佣金）
