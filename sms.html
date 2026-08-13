@@ -457,15 +457,6 @@
           '</div>' +
         '</div>' +
 
-        // 手机号码 chip 展示
-        '<div class="confirm-phones-section">' +
-          '<div class="confirm-phones-label">手机号码（共 ' + state.phones.length + ' 个）</div>' +
-          '<div class="confirm-phones-list">' +
-            state.phones.slice(0, 15).map(function (p) { return '<span class="phone-chip">' + p + '</span>'; }).join("") +
-            (state.phones.length > 15 ? '<span class="phone-chip more">+' + (state.phones.length - 15) + '</span>' : '') +
-          '</div>' +
-        '</div>' +
-
         // 余额信息（仅含税展示四卡片；未税为微信支付不展示）
         (state.tax === "taxed"
           ? '<div class="balance-cards">' +
