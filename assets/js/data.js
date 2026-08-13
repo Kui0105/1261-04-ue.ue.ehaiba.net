@@ -69,8 +69,8 @@ window.MockDB = (function () {
     { key: "cbn",  label: "中国广电",  color: "#7c3aed" }
   ];
 
-  // 面值配置（固定 8 种，含税 = 面值 × 1.06）
-  const FACE_VALUES = [10, 20, 30, 50, 100, 200, 300, 500];
+  // 面值配置（固定 6 种，含税 = 面值 × 1.06）
+  const FACE_VALUES = [30, 50, 100, 200, 300, 500];
   const TAX_TYPES = {
     taxed: { key: "taxed", label: "含税（6% 专票）", desc: "平台开具增值税专用发票", rate: 0.06 },
     untaxed: { key: "untaxed", label: "未税（普票）", desc: "用户自行前往营业厅打印普通发票", rate: 0 }
