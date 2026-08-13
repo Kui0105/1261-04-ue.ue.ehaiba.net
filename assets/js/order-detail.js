@@ -207,7 +207,6 @@ function renderSmsDetail(o, norm) {
           '<div class="sms-tpl-picked-head"><b>' + App.escapeHtml(tplName) + '</b></div>' +
           '<div class="sms-tpl-sig">短信签名：<b>' + App.escapeHtml(sig) + '</b></div>' +
           '<div class="sms-tpl-content">' + App.escapeHtml(content) + '</div>' +
-          '<div class="sms-tpl-picked-foot">单条价格 <b>' + App.fmtMoney(o.unitPrice) + '</b> · ' + getTaxLabel(o.tax) + '</div>' +
         '</div>';
     })() +
 
