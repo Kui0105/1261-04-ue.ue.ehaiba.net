@@ -1,0 +1,267 @@
+/* ============================================================
+   订单管理页专用样式（迭代 52）
+   ============================================================ */
+
+/* ---------- 筛选栏 ---------- */
+.order-filter-panel { padding: 16px 20px; }
+.order-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.order-filter-row .filter-field {
+  flex: 1;
+  min-width: 140px;
+}
+.order-filter-row .filter-field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.order-filter-row .filter-field input,
+.order-filter-row .filter-field select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color .15s;
+}
+.order-filter-row .filter-field input:focus,
+.order-filter-row .filter-field select:focus {
+  border-color: var(--primary);
+}
+.order-filter-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  justify-content: flex-end;
+}
+
+/* ---------- 列表 ---------- */
+.order-list-panel { min-height: 200px; }
+.order-table { min-width: 780px; }
+.order-table thead th {
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.order-table tbody td {
+  font-size: 13px;
+  vertical-align: middle;
+  padding: 11px 12px;
+}
+
+/* 订单编号单元格 */
+.order-id-cell {
+  font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* 退款文字 */
+.refund-text {
+  color: var(--danger);
+  font-weight: 700;
+  font-size: 13px;
+}
+.muted-sm {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* 查看详情按钮 */
+.btn-detail {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color .15s;
+}
+.btn-detail:hover { border-bottom-color: var(--primary); }
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 50px 20px !important;
+  color: var(--text-2);
+}
+.empty-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  opacity: .5;
+}
+.empty-text {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+/* ---------- 分页 ---------- */
+.pagination-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-top: 1px solid var(--border);
+}
+.page-info {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* ========== 详情弹窗 ========== */
+.detail-modal {
+  max-width: 780px;
+  width: 92vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.detail-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 18px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--primary);
+  display: inline-block;
+}
+.detail-section-title:first-child { margin-top: 4px; }
+
+/* 基本信息表格 */
+.detail-info-table {
+  margin-bottom: 0;
+}
+.detail-info-table td {
+  padding: 9px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f3f5;
+}
+.detail-info-table .info-label {
+  width: 100px;
+  color: var(--text-2);
+  background: #fafbfc;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* 明细工具栏：筛选 + 导出 */
+.detail-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0 10px;
+  flex-wrap: wrap;
+}
+.detail-search {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+}
+.detail-search input {
+  flex: 1;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+.detail-search input:focus { border-color: var(--primary); }
+.detail-search select {
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+
+/* 明细子表格 */
+.detail-list-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.detail-sub-table {
+  margin: 0 !important;
+  min-width: 420px;
+}
+.detail-sub-table thead th {
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.detail-sub-table tbody td {
+  font-size: 13px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f3f5;
+  white-space: nowrap;
+}
+
+/* 底部说明 */
+.detail-footer-note {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.6;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .order-filter-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .order-filter-row .filter-field {
+    min-width: unset;
+    width: 100%;
+  }
+  .order-filter-actions {
+    justify-content: stretch;
+  }
+  .order-filter-actions .btn { flex: 1; }
+
+  .detail-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .detail-search {
+    flex-direction: column;
+    min-width: unset;
+  }
+
+  .pagination-wrap { flex-wrap: wrap; }
+}
+
+@media (max-width: 520px) {
+  .detail-modal { width: 96vw; }
+  .detail-info-table .info-label { width: 85px; }
+  .detail-info-table td { padding: 8px 10px; font-size: 12px; }
+}
