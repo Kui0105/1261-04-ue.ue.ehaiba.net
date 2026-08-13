@@ -440,10 +440,7 @@
       var total = unit * state.phones.length;
       var sess = App.getSession();
 
-      // 余额 / 预授权额度校验（统一，前端不区分个人/企业）
-      var avail = sess.balance + (sess.creditLimit - sess.usedCredit);
-      if (total > avail) { App.toast("余额 / 预授权额度不足"); return; }
-
+      // 原型：不做余额/额度拦截，直接进入支付流程（演示账户余额充足即可）
       var afterBalance = Math.max(0, sess.balance - total);
 
       // 构建确认弹窗
