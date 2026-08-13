@@ -1,0 +1,333 @@
+/* ============================================================
+   话费充值页面专属样式
+   ============================================================ */
+
+/* 页面标题行（标题 + 链接） */
+.page-head-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.page-head-link {
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.page-head-link:hover { text-decoration: underline; }
+
+/* 步骤编号 */
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* 必选标签 */
+.req-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+  background: #fef2f2;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* 错误提示 */
+.err-hint { color: var(--danger) !important; }
+.err-text { color: var(--danger); font-weight: 700; }
+
+/* 字段提示 */
+.field-hint { font-weight: 400; color: var(--text-2); }
+
+/* ---------- 运营商选择 ---------- */
+.carrier-seg label {
+  position: relative;
+  overflow: hidden;
+}
+.carrier-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--carrier-color, #999);
+  margin-bottom: 6px;
+  transition: .15s;
+}
+.carrier-seg label.checked {
+  border-color: var(--carrier-color, var(--primary));
+  background: color-mix(in srgb, var(--carrier-color, var(--primary)) 8%, white);
+}
+.carrier-seg label.checked .carrier-dot {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--carrier-color, var(--primary)) 25%, transparent);
+}
+
+/* ---------- 面值选择（更紧凑的卡片） ---------- */
+.face-seg label {
+  min-width: 90px;
+  text-align: center;
+  padding: 12px 8px;
+}
+.face-seg label .t { font-size: 16px; }
+.face-seg label .d { font-size: 11px; margin-top: 2px; }
+
+/* ---------- 底部统计栏 ---------- */
+.recharge-summary {
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 18px 20px;
+}
+.summary-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 70px;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.stat-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+.stat-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.summary-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* 提交按钮禁用态 */
+#submitBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--text-2);
+  border-color: var(--text-2);
+}
+#submitBtn:disabled:hover {
+  background: var(--text-2);
+  transform: none;
+}
+
+/* ---------- 导入弹窗 ---------- */
+.import-modal { max-width: 500px; }
+.import-body { padding: 20px 24px; }
+.import-body p { margin-bottom: 4px; }
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: .2s;
+  background: #fafbfc;
+}
+.drop-zone:hover,
+.drop-zone.drop-over {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.drop-icon { font-size: 40px; margin-bottom: 10px; }
+.drop-text { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.drop-hint { font-size: 12px; color: var(--text-2); }
+
+.import-result {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.import-ok { color: var(--success); font-weight: 600; margin-bottom: 6px; }
+.import-warn { color: var(--warning); margin: 6px 0; }
+.import-preview {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  line-height: 1.7;
+}
+.import-invalid-list {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+.err-phone {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 2px 4px;
+  background: #fee2e2;
+  color: var(--danger);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 600;
+}
+
+.modal-foot {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
+
+/* ---------- 确认弹窗增强 ---------- */
+.confirm-modal { max-width: 540px; }
+.confirm-table td:first-child { color: var(--text-2); font-size: 13px; }
+.confirm-table .amount { font-weight: 700; }
+
+.pay-method-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+.pay-method-label { font-size: 13px; color: var(--text-2); font-weight: 600; }
+.pay-method-value { font-size: 14px; font-weight: 700; }
+.corp-pay { color: var(--success); }
+.personal-pay { color: var(--primary); }
+
+.confirm-phones-section { margin: 14px 0; }
+.confirm-phones-label { font-size: 13px; color: var(--text-2); font-weight: 600; margin-bottom: 8px; }
+.confirm-phones-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.phone-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #eff4ff;
+  color: var(--primary);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 600;
+}
+.phone-chip.more {
+  background: #f1f5f9;
+  color: var(--text-2);
+}
+
+.balance-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.bal-card {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.bal-card.red { background: #fef2f2; border-color: #fecaca; }
+.bal-card.green { background: #f0fdf4; border-color: #bbf7d0; }
+.bal-n { font-size: 17px; font-weight: 800; }
+.bal-card.red .bal-n { color: var(--danger); }
+.bal-card.green .bal-n { color: var(--success); }
+.bal-l { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+
+/* ---------- 企业验证码弹窗 ---------- */
+.verify-modal { max-width: 420px; }
+.verify-body { padding: 20px 24px; }
+.verify-code-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.verify-code-row .code-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- 支付状态窗口 ---------- */
+.pay-status-modal { max-width: 440px; text-align: center; }
+.pay-status-icon {
+  font-size: 52px;
+  margin-bottom: 12px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 880px) {
+  .summary-stats { justify-content: center; }
+  .stat-divider { height: 28px; }
+  .balance-cards { grid-template-columns: repeat(3, 1fr); }
+  .confirm-phones-list { gap: 4px; }
+  .phone-chip { font-size: 11px; padding: 2px 7px; }
+}
+
+@media (max-width: 640px) {
+  .recharge-summary { flex-direction: column; align-items: stretch; }
+  .summary-stats { justify-content: space-around; }
+  .summary-actions { margin-left: 0; justify-content: stretch; }
+  .summary-actions .btn { flex: 1; }
+  .stat-divider { display: none; }
+  .balance-cards { grid-template-columns: 1fr 1fr; }
+  .balance-cards .bal-card:last-child {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .balance-cards .bal-card:last-child .bal-n { font-size: 20px; }
+  .drop-zone { padding: 24px 14px; }
+  .drop-icon { font-size: 32px; }
+  .pay-method-section { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .verify-code-row { flex-direction: column; }
+  .verify-code-row .code-input { width: 100%; box-sizing: border-box; }
+  .verify-code-row .btn { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .page-head-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .face-seg { gap: 8px; }
+  .face-seg label { min-width: 72px; padding: 10px 6px; }
+  .face-seg label .t { font-size: 14px; }
+  .carrier-seg label { min-width: calc(50% - 8px); }
+  .stat-item { min-width: 56px; }
+  .stat-val { font-size: 13px; }
+}

@@ -61,8 +61,16 @@ window.MockDB = (function () {
       return obj.code === inputCode;
     } catch (e) { return false; }
   }
-  // 面值配置（含税 = 面值 × 1.06）
-  const FACE_VALUES = [50, 100, 200, 500];
+  // 运营商（四选一）
+  const CARRIERS = [
+    { key: "cmcc", label: "中国移动", color: "#e63946" },
+    { key: "cucc", label: "中国联通", color: "#2563eb" },
+    { key: "ctcc", label: "中国电信", color: "#059669" },
+    { key: "cbn",  label: "中国广电",  color: "#7c3aed" }
+  ];
+
+  // 面值配置（固定 8 种，含税 = 面值 × 1.06）
+  const FACE_VALUES = [10, 20, 30, 50, 100, 200, 300, 500];
   const TAX_TYPES = {
     taxed: { key: "taxed", label: "含税（6% 专票）", desc: "平台开具增值税专用发票", rate: 0.06 },
     untaxed: { key: "untaxed", label: "未税（普票）", desc: "用户自行前往营业厅打印普通发票", rate: 0 }
@@ -216,7 +224,7 @@ window.MockDB = (function () {
   })();
 
   return {
-    FACE_VALUES, TAX_TYPES, PHONE_POOL,
+    CARRIERS, FACE_VALUES, TAX_TYPES, PHONE_POOL,
     getSession, setSession,
     ORDERS, FLOWS, COMMISSIONS, WITHDRAWS,
     CORP_ACCOUNT, RECHARGE_AMOUNTS,
