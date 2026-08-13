@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-08-13（迭代 70）我的团队计数入 TAB + 提现记录分页与样式优化
+
+- **1. 我的团队弹窗：数据直接显示在 TAB 内（去掉独立统计条）**：
+  - 删除独立的「数据统计条」`.team-stats`（HTML `<div id="teamStats">` + `renderTeamStats()` 函数 + 调用），相关数据改为直接写进 TAB 标签文案：`直推（7）` `间推（8）`（`DB.AGENT_DIRECT.length` / `DB.AGENT_INDIRECT.length`）。
+  - TAB 标签内新增 `<span id="directCount">` / `<span id="indirectCount">`，在 `switchTeamTab()` 中实时赋值。
+  - 保留原有的**每页 10 条分页**机制（`teamPager` / `renderTeamPager()` / `gotoTeamPage()` / `TEAM_PAGE_SIZE = 10`）不变。
+  - 原 `teamSub` 描述文案精简为「由您直接推广注册的下级客户」/「由您的直推客户再次推广注册的下级客户」（去掉重复的「共 N 人」）。
+  - 同步删除 `agent.css` 中已无用的 `.team-stats / .ts-item` 样式。
+- **2. 提现记录弹窗：列表样式优化 + 增加分页**：
+  - 新增分页状态 `wdPageIndex` / `WD_PAGE_SIZE = 10`，并在弹窗底部新增分页容器 `<div class="pagination" id="wdPager">`。
+  - 重写 `renderWdRecords()`：按 `WD_PAGE_SIZE` 切片渲染，`openWdRecordModal()` 打开时重置 `wdPageIndex = 1`；新增 `renderWdPager()`（上一页/下一页 + 「第 X / Y 页（共 N 条）」）与 `gotoWdPage(p)`。
+  - 表格样式优化（`.wd-table`）：表头浅灰底、单元格 11px/13px 内边距、偶数行浅底、金额加粗绿色、单号/时间 `nowrap` 防折行、状态徽标与凭证按钮间距，驳回原因换行展示。
+- 校验：agent.html 内联脚本（24881 字符）经 `new Function` 解析通过；确认无 `renderTeamStats / teamStats / ts-item` 残留引用。
+
+---
+
 ## 2026-08-13（迭代 69）代理中心六项调整（筛选样式/团队TAB/推广标题/提现验证码/记录凭证/去账户面板）
 
 - **1. 筛选项样式错乱修复**：根因为佣金明细筛选栏 `.flow-filter-bar / .filter-field / .date-range` 的样式仅定义在 `account.css`，而 `agent.html` 并未加载该样式表，导致筛选栏无样式、布局错乱。已在 `agent.css` 中补全**自包含**的筛选栏样式（flex 布局 + 输入框 36px 高 + 日期区间 `.date-range`），代理页面不再依赖 account.css。

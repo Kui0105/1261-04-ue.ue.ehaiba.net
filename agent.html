@@ -132,11 +132,9 @@
   <div class="modal-mask" id="teamMask">
     <div class="modal" style="max-width:720px">
       <h3>我的团队<button class="x" onclick="closeTeamModal()">×</button></h3>
-      <!-- 数据统计 -->
-      <div class="team-stats" id="teamStats"></div>
       <div class="team-tabs" id="teamTabs">
-        <button class="team-tab active" data-tab="direct" onclick="switchTeamTab('direct')">直推</button>
-        <button class="team-tab" data-tab="indirect" onclick="switchTeamTab('indirect')">间推</button>
+        <button class="team-tab active" data-tab="direct" onclick="switchTeamTab('direct')">直推（<span id="directCount">0</span>）</button>
+        <button class="team-tab" data-tab="indirect" onclick="switchTeamTab('indirect')">间推（<span id="indirectCount">0</span>）</button>
       </div>
       <div style="font-size:13px;color:var(--text-2);margin-bottom:12px" id="teamSub"></div>
       <div style="overflow-x:auto">
@@ -220,6 +218,8 @@
         </table>
       </div>
       <div id="wdRecordEmpty" style="text-align:center;color:var(--text-2);padding:24px 0;display:none">暂无提现记录</div>
+      <!-- 分页 -->
+      <div class="pagination" id="wdPager"></div>
     </div>
   </div>
 
@@ -237,6 +237,8 @@
     var currentTeamTab = "direct";
     var teamPageIndex = 1;
     var TEAM_PAGE_SIZE = 10;
+    var wdPageIndex = 1;
+    var WD_PAGE_SIZE = 10;
     var wdSentCode = "";
     var wdCodeTimer = null;
 
@@ -465,11 +467,19 @@
       var list = DB.WITHDRAWS || [];
       var tbody = document.getElementById("wdBody");
       var empty = document.getElementById("wdRecordEmpty");
-      if (!list.length) {
-        tbody.innerHTML = ""; empty.style.display = ""; return;
+      var total = list.length;
+      var pages = Math.max(1, Math.ceil(total / WD_PAGE_SIZE));
+      if (wdPageIndex > pages) wdPageIndex = pages;
+      if (!total) {
+        tbody.innerHTML = "";
+        empty.style.display = "";
+        document.getElementById("wdPager").innerHTML = "";
+        return;
       }
       empty.style.display = "none";
-      tbody.innerHTML = list.map(function (w) {
+      var start = (wdPageIndex - 1) * WD_PAGE_SIZE;
+      var pageItems = list.slice(start, start + WD_PAGE_SIZE);
+      tbody.innerHTML = pageItems.map(function (w) {
         var badgeCls, badgeTxt;
         if (w.status === "已到账") { badgeCls = "success"; badgeTxt = "打款成功"; }
         else if (w.status === "待打款") { badgeCls = "process"; badgeTxt = "待打款"; }
@@ -486,6 +496,24 @@
           '<td><span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' + extra + reason + '</td>' +
           '<td>' + w.time + '</td></tr>';
       }).join("");
+      renderWdPager(total, pages);
+    }
+
+    function renderWdPager(total, pages) {
+      var pager = document.getElementById("wdPager");
+      if (pages <= 1) {
+        pager.innerHTML = '<span class="pg-info">共 ' + total + ' 条</span>';
+        return;
+      }
+      var html = '<button class="pg-btn" ' + (wdPageIndex <= 1 ? "disabled" : 'onclick="gotoWdPage(' + (wdPageIndex - 1) + ')"') + '>上一页</button>';
+      html += '<span class="pg-info">第 ' + wdPageIndex + ' / ' + pages + ' 页（共 ' + total + ' 条）</span>';
+      html += '<button class="pg-btn" ' + (wdPageIndex >= pages ? "disabled" : 'onclick="gotoWdPage(' + (wdPageIndex + 1) + ')"') + '>下一页</button>';
+      pager.innerHTML = html;
+    }
+
+    function gotoWdPage(p) {
+      wdPageIndex = p;
+      renderWdRecords();
     }
 
     function openVoucher(wid) {
@@ -532,22 +560,15 @@
     function switchTeamTab(tab) {
       currentTeamTab = tab;
       teamPageIndex = 1;
+      document.getElementById("directCount").textContent = DB.AGENT_DIRECT.length;
+      document.getElementById("indirectCount").textContent = DB.AGENT_INDIRECT.length;
+      document.getElementById("teamSub").textContent = tab === "direct"
+        ? "由您直接推广注册的下级客户"
+        : "由您的直推客户再次推广注册的下级客户";
       document.querySelectorAll(".team-tab").forEach(function (el) {
         el.classList.toggle("active", el.dataset.tab === tab);
       });
-      renderTeamStats();
       renderTeamList();
-    }
-
-    function renderTeamStats() {
-      var isDirect = currentTeamTab === "direct";
-      var list = isDirect ? DB.AGENT_DIRECT : DB.AGENT_INDIRECT;
-      document.getElementById("teamStats").innerHTML =
-        '<span class="ts-item">直推 <b>' + DB.AGENT_DIRECT.length + '</b></span>' +
-        '<span class="ts-item">间推 <b>' + DB.AGENT_INDIRECT.length + '</b></span>';
-      document.getElementById("teamSub").textContent = isDirect
-        ? "由您直接推广注册的下级客户，共 " + list.length + " 人。"
-        : "由您的直推客户再次推广注册的下级客户，共 " + list.length + " 人。";
     }
 
     function renderTeamList() {
@@ -677,6 +698,7 @@
 
     /* ---------- 操作：提现记录弹窗 ---------- */
     function openWdRecordModal() {
+      wdPageIndex = 1;
       renderWdRecords();
       document.getElementById("wdRecordMask").classList.add("show");
     }
