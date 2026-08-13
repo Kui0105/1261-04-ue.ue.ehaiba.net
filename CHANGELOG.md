@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-08-13（迭代 61）订单支付流程按用户类型分流 + 账户中心个人隐藏累计充值
+
+- **订单提交支付流程改为按用户类型分流（与税费类型无关）**：
+  - 新增判定 `var isBalancePay = s.type === "enterprise";`，支付方式不再由 `state.tax` 决定。
+  - **个人用户（`s.type !== "enterprise"`）**：不论选择「含税」还是「未税」，一律走**微信扫码支付**流程（`openWechatPay`，展示二维码 3s 后自动成功，不扣账户余额）。
+  - **企业用户（`s.type === "enterprise"`）**：不论选择「含税」还是「未税」，一律走**余额支付**流程（`openVerify` → `doVerifyPay` → `executePayment`，扣减账户余额）。
+  - `submitOrder()`：确认弹窗「支付方式」标签与余额四卡片可见性改由 `isBalancePay` 控制（个人用户不展示余额卡片）。
+  - `doSubmitOrder()`：路由判断由 `state.tax === "taxed"` 改为 `s.type === "enterprise"`。
+  - `executePayment()`：余额扣减条件由 `state.tax === "taxed"` 改为 `s.type === "enterprise"`。
+  - 修正确认弹窗「消费后余额」卡片：原误展示 `-total`，现改为展示真实剩余余额 `afterBalance = s.balance - total`。
+- **账户中心个人用户不再显示「累计充值金额」**：`#flowSummary` 个人用户汇总条仅保留「累计消费金额」一项（移除「累计充值金额」卡片）。企业用户四卡片不受影响。
+
+---
+
 ## 2026-08-13（迭代 60）账户中心按用户类型差异化展示
 
 - **个人用户不展示账户充值组件**：`rechEntry` 面板对 `s.type !== "enterprise"` 直接 `display:none`（含「立即充值」按钮）。

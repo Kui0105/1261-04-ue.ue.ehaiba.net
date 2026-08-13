@@ -483,6 +483,9 @@
       // 原型：不做余额/额度拦截，直接进入支付流程（演示账户余额充足即可）
       var afterBalance = Math.max(0, s.balance - total);
 
+      // 支付方式由用户类型决定：企业用户=余额支付（走验证码），个人用户=微信扫码支付
+      var isBalancePay = s.type === "enterprise";
+
       // 构建确认弹窗
       document.getElementById("confirmBody").innerHTML =
         '<table class="table confirm-table" style="margin-bottom:14px;width:100%"><tbody>' +
@@ -495,21 +498,21 @@
           '<tr style="background:#f0f4ff"><td class="amount" colspan="2">\u8BA2\u5355\u603B\u989D\uFF1A' + App.fmtMoney(total) + '</td></tr>' +
         '</tbody></table>' +
 
-        // 支付方式（含税=余额支付，未税=微信支付）
+        // 支付方式（企业=余额支付，个人=微信扫码支付）
         '<div class="pay-method-section">' +
           '<div class="pay-method-label">支付方式</div>' +
-          '<div class="pay-method-value ' + (state.tax === "taxed" ? "corp-pay" : "personal-pay") + '">' +
-            (state.tax === "taxed" ? "余额支付" : "微信支付") +
+          '<div class="pay-method-value ' + (isBalancePay ? "corp-pay" : "personal-pay") + '">' +
+            (isBalancePay ? "余额支付" : "微信支付") +
           '</div>' +
         '</div>' +
 
-        // 余额信息（仅含税展示四卡片；未税为微信支付不展示）
-        (state.tax === "taxed"
+        // 余额信息（仅企业用户余额支付展示四卡片；个人用户为微信扫码不展示）
+        (isBalancePay
           ? '<div class="balance-cards">' +
               '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(s.balance) + '</div><div class="bal-l">账户余额</div></div>' +
               '<div class="bal-card"><div class="bal-n">\u00A52000.00</div><div class="bal-l">预授信额度</div></div>' +
               '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
-              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(-total) + '</div><div class="bal-l">消费后余额</div></div>' +
+              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(afterBalance) + '</div><div class="bal-l">消费后余额</div></div>' +
             '</div>'
           : ''
         );
@@ -519,14 +522,14 @@
 
     function closeConfirm() { document.getElementById("confirmMask").classList.remove("show"); }
 
-    /* ---------- 执行提交（含税走验证码，未税走微信扫码） ---------- */
+    /* ---------- 执行提交（企业走验证码余额支付，个人走微信扫码，与税费类型无关） ---------- */
     function doSubmitOrder() {
       closeConfirm();
-      if (state.tax === "taxed") {
-        // 含税：余额支付 + 安全验证码
+      if (s.type === "enterprise") {
+        // 企业用户：余额支付 + 安全验证码（无论含税 / 未税）
         openVerify();
       } else {
-        // 未税：微信扫码支付（展示二维码，3s 后自动成功）
+        // 个人用户：微信扫码支付（无论含税 / 未税，展示二维码 3s 后自动成功）
         var t = DB.TAX_TYPES[state.tax];
         var unit = t.rate ? state.face * (1 + t.rate) : state.face;
         var total = unit * state.phones.length;
@@ -608,8 +611,8 @@
       };
       DB.ORDERS.unshift(order);
 
-      // 仅含税（余额支付）扣减账户余额；未税为微信支付不扣
-      if (state.tax === "taxed") {
+      // 仅企业用户（余额支付）扣减账户余额；个人用户为微信扫码不扣
+      if (s.type === "enterprise") {
         s.balance = Math.max(0, s.balance - total);
         DB.setSession(s);
       }
