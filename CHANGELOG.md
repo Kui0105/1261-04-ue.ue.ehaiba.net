@@ -19,6 +19,32 @@
 
 ---
 
+## 2026-08-13（迭代 72）去掉佣金金额筛选 + 顶栏编辑按钮+修改密码弹窗 + 提现记录样式修复
+
+- **1. 佣金明细筛选项去掉「佣金金额」**：删除筛选栏中的 `consAmt` 输入框（`filter-field` 容器 + label + input）；同步清理 `getFilteredCommissions()` 中 `amt`/`amtStr`/`isNaN(amt)` 相关过滤逻辑；保留 单号/来源用户关键词 + 产生时间范围 两项筛选。
+- **2. 顶栏增加「编辑」按钮 + 修改密码弹窗**：
+  - `app.js` 的 `renderTopbar()` 在账号信息（`s.name/s.account`）与「退出」按钮之间插入 `<button id="btnEditPwd">编辑</button>`（`btn-ghost btn-sm mobile-hide`），并绑定 click 事件调用全局 `openEditPwdModal()`。
+  - `agent.html` 新增修改密码弹窗（`#editPwdMask`）：表单含 绑定手机号（预填 `s.phone`）/ 短信验证码（获取验证码 60s 倒计时，演示码 111111）/ 新密码（6-20 位）/ 确认新密码 / 取消 + 确认修改 双按钮。
+  - JS 函数：`openEditPwdModal()`（预填手机号、重置表单和验证码 UI）、`closeEditPwdModal()`、`sendEditPwdCode()`、`resetEditPwdCodeBtn()`、`doEditPwdSubmit()`（校验手机号格式 → 是否已发码 → 验证码匹配 → 密码长度 6-20 → 两次一致 → toast 成功并关闭弹窗）。
+- **3. 提现记录弹窗样式修复**：
+  - 「查看凭证」按钮改为 `display:inline-flex; white-space:nowrap`，确保文字**横向排列**不竖排；打款凭证列（第 5 列）设 `min-width:80px; text-align:center` 给足宽度。
+  - 弹窗内容区（`overflow-x:auto` 容器）添加 `padding-top:0 !important; margin-top:-4px` 消除标题与表格之间的**顶部留白**，对齐截图标准。
+- 校验：agent.html 内联脚本（2 段）new Function 通过；app.js / data.js node --check 通过；确认无 `consAmt` 残留引用。
+
+---
+
+- **1. 佣金明细列表数据增加至 25 条 + 分页 20 条/页**：
+  - `data.js` 的 `COMMISSIONS` 由原先按真实企业下线计算的 4 条，改为**显式生成 25 条**（直推 13 条 + 间推 12 条，含真实下线 李娜/刘洋/吴昊/蒋涛，其余为演示企业客户）；编号 `C2026D001`~`C2026D013`、`C2026I001`~`C2026I012`，金额按 直推 3‰ / 间推 2‰ 实时计算，ID 唯一。
+  - 作废原先基于 `#commBody` 行 `data-*` 属性的 DOM 显隐筛选（`applyConsFilter` 改为数据驱动），新增 `getFilteredCommissions()`（按 单号/来源用户关键词 + 金额 + 时间范围 过滤）与 `renderCommList()`。
+  - 新增分页状态 `commPageIndex` / `COMM_PAGE_SIZE = 20`，列表下方新增分页容器 `<div class="pagination" id="commPager">`；`renderCommPager()` / `gotoCommPage()` 复用既有 `.pagination` 样式；筛选时自动回到第 1 页（25 条 → 2 页：20 + 5）。
+- **2. 提现记录弹窗新增「打款凭证」列**：
+  - `wd-table` 表头在原 5 列基础上新增 **打款凭证** 列（位于「提现状态」之后、「提现时间」之前）。
+  - 渲染逻辑（`renderWdRecords`）：仅 `已到账（打款成功）且含 voucher` 的行显示「查看凭证」按钮（点击 `openVoucher` 弹 SVG 凭证）；其余状态（待审核/待打款/审核驳回）以灰色「—」占位。
+  - 同步将原本嵌在「提现状态」单元格内的凭证按钮**移出**，避免与状态/驳回原因混排；新增 `.wd-dash` 灰色占位样式。
+- 校验：`agent.html` 内联脚本（2 段）经 `new Function` 解析通过；`data.js` 经 `node --check` 与整文件加载验证，`COMMISSIONS.length = 25`（直推 13 / 间推 12，ID 全唯一）；确认无 `data-amt/data-member/data-id` 残留引用。
+
+---
+
 ## 2026-08-13（迭代 70）我的团队计数入 TAB + 提现记录分页与样式优化
 
 - **1. 我的团队弹窗：数据直接显示在 TAB 内（去掉独立统计条）**：

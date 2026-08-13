@@ -73,6 +73,7 @@ window.App = (function () {
 
     const right = s
       ? `<span style="font-size:13px;color:var(--text-2)" class="mobile-hide">${escapeHtml(s.name || s.account)}</span>
+         <button class="btn btn-ghost btn-sm mobile-hide" id="btnEditPwd">编辑</button>
          <button class="btn btn-ghost btn-sm mobile-hide" id="btnLogout">退出</button>`
       : `<a href="login.html" class="btn btn-outline btn-sm">登录 / 注册</a>`;
 
@@ -95,6 +96,12 @@ window.App = (function () {
     // 绑定退出按钮事件（不用 inline onclick，更可靠）
     var btnLogout = bar.querySelector("#btnLogout");
     if (btnLogout) btnLogout.addEventListener("click", logoutAndGo);
+
+    // 绑定编辑按钮事件（打开修改密码弹窗）
+    var btnEditPwd = bar.querySelector("#btnEditPwd");
+    if (btnEditPwd) btnEditPwd.addEventListener("click", function () {
+      if (typeof openEditPwdModal === "function") openEditPwdModal();
+    });
 
     // 移动端子导航图标+文字条（仅登录时显示，未登录不注入）
     if (s) {
