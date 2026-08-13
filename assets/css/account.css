@@ -1,0 +1,177 @@
+/* ============================================================
+   账户中心页专用样式（迭代 59）
+   ============================================================ */
+
+/* ---------- 充值入口 ---------- */
+.rech-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+}
+.rech-entry-info { display: flex; align-items: center; gap: 14px; }
+.rech-entry-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--primary-light, #eff4ff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.rech-entry-info b { font-size: 16px; }
+.rech-entry-info p { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+
+/* ---------- 卡片数据 ---------- */
+#balanceTiles {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ---------- 交易明细面板 ---------- */
+.acct-flow-panel { padding: 0; overflow: hidden; }
+.acct-flow-head { padding: 18px 22px 0; }
+
+/* ---------- 筛选栏 ---------- */
+.flow-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.flow-filter-bar .filter-field {
+  flex: 1;
+  min-width: 150px;
+}
+.flow-filter-bar .filter-field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.flow-filter-bar .filter-field input,
+.flow-filter-bar .filter-field select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color .15s;
+}
+.flow-filter-bar .filter-field input:focus,
+.flow-filter-bar .filter-field select:focus {
+  border-color: var(--primary);
+}
+
+/* 筛选栏：时间段选择 */
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+}
+.date-range input[type="date"] {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color .15s;
+}
+.date-range input[type="date"]:focus { border-color: var(--primary); }
+.date-range .date-sep { color: var(--text-2); font-size: 13px; flex-shrink: 0; }
+
+/* ---------- 明细表格 ---------- */
+.flow-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.flow-table {
+  width: 100%;
+  min-width: 800px;
+}
+.flow-table thead th {
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.flow-table tbody td {
+  font-size: 13px;
+  vertical-align: middle;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f3f5;
+}
+.flow-table tbody tr:hover { background: #f8fafc; }
+
+/* 流水号 / 订单号：等宽字体 */
+.mono-sm {
+  font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+}
+/* 订单号链接 */
+.order-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+}
+.order-link:hover { text-decoration: underline; }
+
+/* 分页 */
+.pagination-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+.page-info {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* ---------- 对公账户弹窗 ---------- */
+.corp-account {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.ca-row {
+  display: flex;
+  align-items: center;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.ca-row:last-child { border-bottom: none; }
+.ca-k { width: 84px; flex: none; color: var(--text-2); font-size: 13px; }
+.ca-v { font-size: 15px; font-weight: 600; word-break: break-all; }
+.ca-v.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .5px; }
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .rech-entry { flex-direction: column; align-items: stretch; }
+  .rech-entry .btn-primary { width: 100%; }
+
+  .flow-filter-bar { flex-direction: column; gap: 10px; }
+  .flow-filter-bar .filter-field { min-width: unset; width: 100%; }
+
+  #balanceTiles { grid-template-columns: repeat(2, 1fr); }
+  .pagination-wrap { flex-wrap: wrap; }
+}
+
+@media (max-width: 520px) {
+  /* 隐藏关联订单号列（窄屏空间不足） */
+  .flow-table th:nth-child(2),
+  .flow-table td:nth-child(2) { display: none; }
+  .flow-table { min-width: auto; }
+}

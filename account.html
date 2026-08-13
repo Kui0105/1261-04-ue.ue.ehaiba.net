@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>账户中心 · 话费代充系统</title>
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/account.css" />
 </head>
 <body>
   <script src="assets/js/data.js"></script>
@@ -12,12 +13,13 @@
   <script>if (!App.requireLogin("account")) document.write("");</script>
 
   <div class="container page">
+    <!-- 顶部标题 -->
     <div class="page-head">
       <h1>账户中心</h1>
-      <p>查看账户余额、预授权额度、交易明细，如需退款请线下联系平台处理。</p>
+      <p>企业用户查看账户余额、交易流水明细，并查看账户充值信息。</p>
     </div>
 
-    <!-- 账户充值入口 -->
+    <!-- 充值入口 -->
     <div class="panel rech-entry">
       <div class="rech-entry-info">
         <div class="rech-entry-icon">💳</div>
@@ -29,35 +31,60 @@
       <button class="btn btn-primary" onclick="openRecharge()">立即充值</button>
     </div>
 
-    <!-- 余额 / 额度 -->
+    <!-- 卡片数据：账户余额 / 可用预授信额度 / 累计消费金额 / 累计充值金额 -->
     <div class="tiles" id="balanceTiles" style="margin-bottom:18px"></div>
 
-    <!-- 交易明细 -->
-    <div class="panel" style="padding:0">
-      <div style="padding:18px 22px 0"><h3 style="margin:0">交易明细</h3></div>
-      <div style="overflow-x:auto">
+    <!-- 交易明细（含筛选 + 表格 + 分页） -->
+    <div class="panel acct-flow-panel">
+      <div class="acct-flow-head">
+        <h3 style="margin:0">交易明细</h3>
+      </div>
+
+      <!-- 列表筛选栏 -->
+      <div class="flow-filter-bar">
+        <div class="filter-field">
+          <label>流水号 / 订单号</label>
+          <input type="text" id="flowKeyword" placeholder="输入关键词搜索…" oninput="applyFlowFilter()" />
+        </div>
+        <div class="filter-field">
+          <label>交易类型</label>
+          <select id="flowTypeFilter" onchange="applyFlowFilter()">
+            <option value="">全部类型</option>
+            <option value="话费充值">话费充值</option>
+            <option value="短信群发">短信群发</option>
+            <option value="平台充值">平台充值</option>
+            <option value="平台扣减">平台扣减</option>
+            <option value="订单退款">订单退款</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>交易账户</label>
+          <select id="flowAcctFilter" onchange="applyFlowFilter()">
+            <option value="">全部账户</option>
+            <option value="系统余额">系统余额</option>
+            <option value="微信支付">微信支付</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>交易时间</label>
+          <div class="date-range">
+            <input type="date" id="flowDateFrom" onchange="applyFlowFilter()" />
+            <span class="date-sep">~</span>
+            <input type="date" id="flowDateTo" onchange="applyFlowFilter()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 明细表格 -->
+      <div class="flow-table-wrap">
         <table class="table flow-table">
-          <thead><tr><th>流水号</th><th>类型</th><th>金额</th><th>变动后余额</th><th>操作人</th><th>时间</th></tr></thead>
+          <thead><tr><th>流水号</th><th>关联订单号</th><th>交易类型</th><th>交易金额</th><th>变动后余额</th><th>交易账户</th><th>交易时间</th></tr></thead>
           <tbody id="flowBody"></tbody>
         </table>
       </div>
-    </div>
-  </div>
 
-  <!-- 个人微信支付弹窗 -->
-  <div class="modal-mask" id="wxMask">
-    <div class="modal" style="max-width:420px">
-      <h3><span>微信支付充值</span><button class="x" onclick="closeWx()">×</button></h3>
-      <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">请选择充值金额，确认后将调起微信支付。</p>
-      <div class="amount-chips" id="wxAmountChips"></div>
-      <div class="field" style="margin-top:12px">
-        <label>充值金额（元）</label>
-        <input type="number" id="wxAmount" min="1" step="1" placeholder="请输入金额" />
-      </div>
-      <div style="display:flex;gap:10px;margin-top:18px">
-        <button class="btn btn-ghost" onclick="closeWx()" style="flex:1">取消</button>
-        <button class="btn btn-primary" onclick="doWxPay()" style="flex:1">调起微信支付</button>
-      </div>
+      <!-- 分页 -->
+      <div class="pagination-wrap" id="flowPagination"></div>
     </div>
   </div>
 
@@ -78,36 +105,34 @@
     var DB = App.DB;
     var s = App.getSession() || {};
 
+    /* ========== 卡片数据 ========== */
     (function renderBalance() {
-      var tiles = [{ n: App.fmtMoney(s.balance), l: "账户余额（可用于充值）", c: "blue" }];
+      // 从 FLOWS 计算累计消费与累计充值
+      var flows = DB.FLOWS || [];
+      var totalConsume = 0;   // 扣款类绝对值之和（话费充值 + 短信群发 + 平台扣减）
+      var totalRecharge = 0;  // 增加类之和（平台充值 + 订单退款 + 微信支付等）
+      flows.forEach(function (f) {
+        if (f.amount < 0) { totalConsume += Math.abs(f.amount); }
+        else { totalRecharge += f.amount; }
+      });
+      totalConsume = Math.round(totalConsume * 100) / 100;
+      totalRecharge = Math.round(totalRecharge * 100) / 100;
+
+      var tiles = [
+        { n: App.fmtMoney(s.balance), l: "账户余额", c: "blue" },
+        { n: App.fmtMoney(totalConsume), l: "累计消费金额", c: "" }
+      ];
       if (s.type === "enterprise") {
-        tiles.push({ n: App.fmtMoney(s.creditLimit), l: "预授权额度上限", c: "" });
-        tiles.push({ n: App.fmtMoney(s.usedCredit), l: "已用预授权额度", c: "amber" });
-        tiles.push({ n: App.fmtMoney(s.creditLimit - s.usedCredit), l: "可用预授权额度", c: "green" });
-      } else {
-        tiles.push({ n: "—", l: "个人用户无预授权额度", c: "" });
-        tiles.push({ n: "不可用", l: "余额不可自主提现", c: "" });
-        tiles.push({ n: "线下", l: "退款方式", c: "amber" });
+        tiles.splice(1, 0, { n: App.fmtMoney(s.creditLimit - s.usedCredit), l: "可用预授信额度", c: "green" });
       }
+      tiles.push({ n: App.fmtMoney(totalRecharge), l: "累计充值金额", c: "" });
+
       document.getElementById("balanceTiles").innerHTML = tiles.map(function (t) {
         return '<div class="tile ' + t.c + '"><div class="n">' + t.n + '</div><div class="l">' + t.l + '</div></div>';
       }).join("");
     })();
 
-    document.getElementById("flowBody").innerHTML = DB.FLOWS.map(function (f) {
-      var cls = f.amount >= 0 ? "success" : "fail";
-      return '<tr>' +
-        '<td>' + f.id + '</td>' +
-        '<td><span class="badge ' + cls + '">' + f.type + '</span></td>' +
-        '<td class="amount" style="color:' + (f.amount >= 0 ? "var(--success)" : "var(--danger)") + '">' +
-          (f.amount >= 0 ? "+" : "") + App.fmtMoney(f.amount) + '</td>' +
-        '<td>' + App.fmtMoney(f.after) + '</td>' +
-        '<td>' + f.op + '</td>' +
-        '<td>' + f.time + '</td>' +
-      '</tr>';
-    }).join("");
-
-    /* ---------- 账户充值入口（按用户类型 + 设备分流） ---------- */
+    /* ========== 充值入口（按用户类型分流） ========== */
     (function initRechargeEntry() {
       var desc = document.getElementById("rechEntryDesc");
       if (s.type === "enterprise") {
@@ -129,39 +154,8 @@
           App.toast("个人用户充值请在手机端使用微信支付");
           return;
         }
-        openWx();
+        App.toast("正在调起微信支付…（原型演示）");
       }
-    }
-
-    /* --- 个人微信支付 --- */
-    function openWx() {
-      var chips = DB.RECHARGE_AMOUNTS.map(function (a, i) {
-        return '<button type="button" class="amount-chip ' + (i === 0 ? "active" : "") +
-          '" onclick="selectWxAmount(' + a + ', this)">' + a + '</button>';
-      }).join("");
-      document.getElementById("wxAmountChips").innerHTML = chips;
-      document.getElementById("wxAmount").value = DB.RECHARGE_AMOUNTS[0];
-      document.getElementById("wxMask").classList.add("show");
-    }
-    function selectWxAmount(a, el) {
-      document.getElementById("wxAmount").value = a;
-      var chips = document.querySelectorAll("#wxAmountChips .amount-chip");
-      chips.forEach(function (c) { c.classList.remove("active"); });
-      el.classList.add("active");
-    }
-    function closeWx() { document.getElementById("wxMask").classList.remove("show"); }
-    function doWxPay() {
-      var amount = parseFloat(document.getElementById("wxAmount").value);
-      if (!amount || amount <= 0) { App.toast("请输入有效的充值金额"); return; }
-      closeWx();
-      App.toast("正在调起微信支付 " + App.fmtMoney(amount) + " …");
-      // 原型演示：模拟微信支付回调加款
-      s.balance = Math.round((s.balance + amount) * 100) / 100;
-      DB.setSession(s);
-      setTimeout(function () {
-        App.toast("微信支付成功，余额已更新");
-        location.reload();
-      }, 900);
     }
 
     /* --- 企业对公账户 --- */
@@ -175,6 +169,120 @@
       document.getElementById("corpMask").classList.add("show");
     }
     function closeCorp() { document.getElementById("corpMask").classList.remove("show"); }
+
+    /* ========== 交易明细：渲染 + 筛选 + 分页 ========== */
+
+    // 分页常量
+    var FLOW_PAGE_SIZE = 20;
+    var flowCurrentPage = 1;
+
+    // 交易类型 → 颜色规则：
+    //   扣款类（话费充值/短信群发/平台扣减）→ red
+    //   增加/退款类（平台充值/订单退款/微信支付等）→ green
+    var FLOW_DEDUCT_TYPES = ["话费充值", "短信群发", "平台扣减"];
+
+    function flowTypeBadge(type) {
+      var isDeduct = FLOW_DEDUCT_TYPES.indexOf(type) !== -1;
+      var cls = isDeduct ? "fail" : "success";
+      return '<span class="badge ' + cls + '">' + type + '</span>';
+    }
+
+    function flowAmountColor(type, amount) {
+      var isDeduct = FLOW_DEDUCT_TYPES.indexOf(type) !== -1;
+      return isDeduct ? "var(--danger)" : "var(--success)";
+    }
+
+    // 渲染全部行（先隐藏，分页控制显示）
+    function renderFlowRows() {
+      var flows = DB.FLOWS || [];
+      document.getElementById("flowBody").innerHTML = flows.map(function (f) {
+        return '<tr data-id="' + f.id + '" data-type="' + f.type + '" data-account="' + f.account + '" data-order="' + (f.orderId || "") + '" data-time="' + f.time + '">' +
+          '<td class="mono-sm">' + f.id + '</td>' +
+          '<td class="mono-sm">' + (f.orderId ? ('<a href="order-detail.html?id=' + encodeURIComponent(f.orderId) + '" class="order-link">' + f.orderId + '</a>') : '<span class="muted-sm">—</span>') + '</td>' +
+          '<td>' + flowTypeBadge(f.type) + '</td>' +
+          '<td class="amount" style="color:' + flowAmountColor(f.type, f.amount) + '">' +
+            (f.amount >= 0 ? "+" : "") + App.fmtMoney(f.amount) + '</td>' +
+          '<td class="amount">' + App.fmtMoney(f.after) + '</td>' +
+          '<td>' + f.account + '</td>' +
+          '<td style="white-space:nowrap">' + f.time + '</td>' +
+        '</tr>';
+      }).join("");
+    }
+
+    // 筛选逻辑
+    function applyFlowFilter() {
+      var kw = (document.getElementById("flowKeyword").value || "").trim().toLowerCase();
+      var typeF = document.getElementById("flowTypeFilter").value;
+      var acctF = document.getElementById("flowAcctFilter").value;
+      var dateFrom = document.getElementById("flowDateFrom").value;
+      var dateTo = document.getElementById("flowDateTo").value;
+
+      var rows = document.querySelectorAll("#flowBody tr");
+      rows.forEach(function (row) {
+        var show = true;
+        if (kw) {
+          var id = row.dataset.id.toLowerCase();
+          var oid = row.dataset.order.toLowerCase();
+          if (id.indexOf(kw) === -1 && oid.indexOf(kw) === -1) show = false;
+        }
+        if (typeF && row.dataset.type !== typeF) show = false;
+        if (acctF && row.dataset.account !== acctF) show = false;
+        if (dateFrom && row.dataset.time < dateFrom) show = false;
+        if (dateTo && row.dataset.time > dateTo) show = false;
+        row.style.display = show ? "" : "none";
+      });
+
+      flowCurrentPage = 1;
+      applyFlowPagination();
+    }
+
+    // 分页逻辑
+    function getVisibleFlowRows() {
+      return Array.prototype.filter.call(
+        document.querySelectorAll("#flowBody tr"),
+        function (r) { return r.style.display !== "none"; }
+      );
+    }
+
+    function applyFlowPagination() {
+      var visible = getVisibleFlowRows();
+      var total = visible.length;
+      var totalPages = Math.max(1, Math.ceil(total / FLOW_PAGE_SIZE));
+      if (flowCurrentPage > totalPages) flowCurrentPage = totalPages;
+
+      var start = (flowCurrentPage - 1) * FLOW_PAGE_SIZE;
+      visible.forEach(function (row, i) {
+        row.style.display = (i >= start && i < start + FLOW_PAGE_SIZE) ? "" : "none";
+      });
+
+      renderFlowPaginationUI(totalPages, total);
+    }
+
+    function renderFlowPaginationUI(totalPages, total) {
+      var wrap = document.getElementById("flowPagination");
+      if (!wrap) return;
+      if (totalPages <= 1) { wrap.innerHTML = ""; return; }
+
+      wrap.innerHTML =
+        '<button class="btn btn-outline btn-sm" onclick="goFlowPage(' + (flowCurrentPage - 1) + ')"' +
+          (flowCurrentPage <= 1 ? ' disabled' : '') + '>上一页</button>' +
+        '<span class="page-info">' + flowCurrentPage + ' / ' + totalPages +
+          ' 页（共 ' + total + ' 条）</span>' +
+        '<button class="btn btn-outline btn-sm" onclick="goFlowPage(' + (flowCurrentPage + 1) + ')"' +
+          (flowCurrentPage >= totalPages ? ' disabled' : '') + '>下一页</button>';
+    }
+
+    function goFlowPage(p) {
+      var visible = getVisibleFlowRows();
+      var totalPages = Math.max(1, Math.ceil(visible.length / FLOW_PAGE_SIZE));
+      if (p < 1 || p > totalPages) return;
+      flowCurrentPage = p;
+      applyFlowPagination();
+    }
+
+    /* ========== 初始化 ========== */
+    renderFlowRows();
+    applyFlowPagination();
   </script>
 </body>
 </html>
