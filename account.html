@@ -16,11 +16,11 @@
     <!-- 顶部标题 -->
     <div class="page-head">
       <h1>账户中心</h1>
-      <p>企业用户查看账户余额、交易流水明细，并查看账户充值信息。</p>
+      <p>查看账户交易流水明细，掌握账户消费与充值情况。</p>
     </div>
 
-    <!-- 充值入口 -->
-    <div class="panel rech-entry">
+    <!-- 充值入口（个人用户不展示） -->
+    <div class="panel rech-entry" id="rechEntry">
       <div class="rech-entry-info">
         <div class="rech-entry-icon">💳</div>
         <div>
@@ -39,6 +39,9 @@
       <div class="acct-flow-head">
         <h3 style="margin:0">交易明细</h3>
       </div>
+
+      <!-- 个人用户汇总（替代隐藏的卡片数据：此处展示累计消费金额） -->
+      <div class="flow-summary" id="flowSummary" style="display:none"></div>
 
       <!-- 列表筛选栏 -->
       <div class="flow-filter-bar">
@@ -105,7 +108,7 @@
     var DB = App.DB;
     var s = App.getSession() || {};
 
-    /* ========== 卡片数据 ========== */
+    /* ========== 卡片数据 / 个人用户汇总 ========== */
     (function renderBalance() {
       // 从 FLOWS 计算累计消费与累计充值
       var flows = DB.FLOWS || [];
@@ -118,28 +121,37 @@
       totalConsume = Math.round(totalConsume * 100) / 100;
       totalRecharge = Math.round(totalRecharge * 100) / 100;
 
-      var tiles = [
-        { n: App.fmtMoney(s.balance), l: "账户余额", c: "blue" },
-        { n: App.fmtMoney(totalConsume), l: "累计消费金额", c: "" }
-      ];
       if (s.type === "enterprise") {
-        tiles.splice(1, 0, { n: App.fmtMoney(s.creditLimit - s.usedCredit), l: "可用预授信额度", c: "green" });
+        // 企业用户：卡片数据（账户余额 / 可用预授信额度 / 累计消费金额 / 累计充值金额）
+        var tiles = [
+          { n: App.fmtMoney(s.balance), l: "账户余额", c: "blue" },
+          { n: App.fmtMoney(s.creditLimit - s.usedCredit), l: "可用预授信额度", c: "green" },
+          { n: App.fmtMoney(totalConsume), l: "累计消费金额", c: "" },
+          { n: App.fmtMoney(totalRecharge), l: "累计充值金额", c: "" }
+        ];
+        document.getElementById("balanceTiles").innerHTML = tiles.map(function (t) {
+          return '<div class="tile ' + t.c + '"><div class="n">' + t.n + '</div><div class="l">' + t.l + '</div></div>';
+        }).join("");
+      } else {
+        // 个人用户：不展示卡片数据组件，改用交易明细区「累计消费金额」字段
+        document.getElementById("balanceTiles").style.display = "none";
+        var sum = document.getElementById("flowSummary");
+        sum.style.display = "flex";
+        sum.innerHTML =
+          '<div class="flow-sum"><span class="flow-sum-l">累计消费金额</span><span class="flow-sum-n">' + App.fmtMoney(totalConsume) + '</span></div>' +
+          '<div class="flow-sum"><span class="flow-sum-l">累计充值金额</span><span class="flow-sum-n">' + App.fmtMoney(totalRecharge) + '</span></div>';
       }
-      tiles.push({ n: App.fmtMoney(totalRecharge), l: "累计充值金额", c: "" });
-
-      document.getElementById("balanceTiles").innerHTML = tiles.map(function (t) {
-        return '<div class="tile ' + t.c + '"><div class="n">' + t.n + '</div><div class="l">' + t.l + '</div></div>';
-      }).join("");
     })();
 
     /* ========== 充值入口（按用户类型分流） ========== */
     (function initRechargeEntry() {
-      var desc = document.getElementById("rechEntryDesc");
-      if (s.type === "enterprise") {
-        desc.textContent = "通过对公转账向平台账户充值，到账后由财务人工加款。";
-      } else {
-        desc.textContent = "在手机端使用微信支付为账户余额加款。";
+      if (s.type !== "enterprise") {
+        // 个人用户：不展示账户充值组件
+        var rech = document.getElementById("rechEntry");
+        if (rech) rech.style.display = "none";
+        return;
       }
+      document.getElementById("rechEntryDesc").textContent = "通过对公转账向平台账户充值，到账后由财务人工加款。";
     })();
 
     function isMobile() {

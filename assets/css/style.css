@@ -101,6 +101,7 @@ img { max-width: 100%; }
   cursor: pointer;
   transition: .15s ease;
   font-family: inherit;
+  text-align: center;
 }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }

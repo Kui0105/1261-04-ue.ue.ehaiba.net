@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-08-13（迭代 60）账户中心按用户类型差异化展示
+
+- **个人用户不展示账户充值组件**：`rechEntry` 面板对 `s.type !== "enterprise"` 直接 `display:none`（含「立即充值」按钮）。
+- **个人用户不展示卡片数据组件**：`#balanceTiles` 卡片网格对个人用户 `display:none`。
+- **个人用户交易明细增加累计消费金额字段**：因卡片隐藏后该字段丢失，在交易明细面板顶部新增 `#flowSummary` 汇总条（仅个人用户显示），展示「累计消费金额 / 累计充值金额」（由 FLOWS 实时计算）。
+- **企业用户立即充值弹窗按钮文字居中**：`.btn` 增加 `text-align:center`（与既有的 `inline-flex + justify-content:center` 互为兜底），确保弹窗「我知道了」等按钮文字居中。
+- `account.html`：page-head 说明文案改为中性的「查看账户交易流水明细，掌握账户消费与充值情况。」；新增 `#rechEntry`、`#flowSummary` 容器。
+- `assets/css/account.css`：新增 `.flow-summary` / `.flow-sum` 样式（含窄屏单列适配）。
+
+---
+
 ## 2026-08-13（迭代 59）账户中心页面按需求规格全面重构
 
 ### data.js
