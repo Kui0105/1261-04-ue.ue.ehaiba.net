@@ -96,6 +96,11 @@
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
+          <span class="stat-label">折扣</span>
+          <span class="stat-val" id="sumDiscount">9.9折</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
           <span class="stat-label">税额数量</span>
           <span class="stat-val" id="sumTaxAmount">0</span>
         </div>
@@ -362,6 +367,7 @@
       document.getElementById("sumTaxFace").textContent = App.fmtMoney(totalTaxed);
       document.getElementById("sumTaxType").textContent = t.label.replace(/\(.+\)/, "").trim();
       document.getElementById("sumUnitPrice").textContent = App.fmtMoney(unit);
+      document.getElementById("sumDiscount").textContent = DB.DISCOUNT.label;
       document.getElementById("sumTaxAmount").textContent = taxAmount > 0 ? App.fmtMoney(taxAmount) : "0";
 
       // 提交按钮置灰规则
@@ -480,6 +486,11 @@
       var taxAmt = state.face && t.rate ? (state.face * t.rate * state.phones.length) : 0;
       var carrierObj = DB.CARRIERS.find(function (c) { return c.key === state.carrier; }) || {};
 
+      // 折扣（平台统一 9.9 折）：计算应付金额与优惠金额
+      var disc = DB.DISCOUNT;
+      var payable = Math.round(total * disc.rate * 100) / 100;
+      var saveAmt = Math.round((total - payable) * 100) / 100;
+
       // 原型：不做余额/额度拦截，直接进入支付流程（演示账户余额充足即可）
 
       // 支付方式由用户类型决定：企业用户=余额支付（走验证码），个人用户=微信扫码支付
@@ -492,9 +503,11 @@
           '<tr><td>\u7A0E\u8D39\u7C7B\u578B</td><td>' + (state.tax === "taxed" ? "含税（6%专票）" : "未税（普票）") + '</td></tr>' +
           '<tr><td>\u5145\u503C\u9762\u989D</td><td><b>' + state.face + ' \u5143</b></td></tr>' +
           '<tr><td>\u5355\u4EF7\u91D1\u989D</td><td class="amount">' + App.fmtMoney(unit) + '</td></tr>' +
+          '<tr><td>\u6298\u6263</td><td>' + disc.label + '</td></tr>' +
+          '<tr><td>\u4F18\u60E0\u91D1\u989D</td><td class="amount">-' + App.fmtMoney(saveAmt) + '</td></tr>' +
           '<tr><td>\u7A0E\u989D\u6570\u91CF</td><td class="amount">' + (taxAmt > 0 ? App.fmtMoney(taxAmt) : "0") + '</td></tr>' +
           '<tr><td>\u53F7\u7801\u6570\u91CF</td><td><b>' + state.phones.length + ' \u4E2A</b></td></tr>' +
-          '<tr style="background:#f0f4ff"><td class="amount" colspan="2">\u8BA2\u5355\u603B\u989D\uFF1A' + App.fmtMoney(total) + '</td></tr>' +
+          '<tr style="background:#f0f4ff"><td class="amount" colspan="2">\u5B9E\u4ED8\u603B\u989D\uFF08' + disc.label + '\uFF09\uFF1A' + App.fmtMoney(payable) + '</td></tr>' +
         '</tbody></table>' +
 
         // 支付方式（企业=余额支付，个人=微信扫码支付）
@@ -510,8 +523,8 @@
           ? '<div class="balance-cards">' +
               '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(s.balance) + '</div><div class="bal-l">账户余额</div></div>' +
               '<div class="bal-card"><div class="bal-n">\u00A52000.00</div><div class="bal-l">预授信额度</div></div>' +
-              '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
-              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(-total) + '</div><div class="bal-l">消费后余额</div></div>' +
+              '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(payable) + '</div><div class="bal-l">本次消费金额</div></div>' +
+              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(-payable) + '</div><div class="bal-l">消费后余额</div></div>' +
             '</div>'
           : ''
         );
@@ -573,11 +586,12 @@
       if (!DB.verifyCode(s.phone || "", code)) {
         App.toast("验证码错误，请重试"); return;
       }
-      // 预授信额度校验（固定 2000）
+      // 预授信额度校验（固定 2000，按折扣后应付金额判断）
       var t = DB.TAX_TYPES[state.tax];
       var unit = t.rate ? state.face * (1 + t.rate) : state.face;
       var total = unit * state.phones.length;
-      if (total > 2000) {
+      var payable = Math.round(total * DB.DISCOUNT.rate * 100) / 100;
+      if (payable > 2000) {
         closeVerify();
         App.toast("余额/预授信额度不足无法支付");
         return;

@@ -18,6 +18,21 @@
       <h3 style="margin-bottom:18px">申请表单</h3>
       <div class="apply-form">
         <div class="field">
+          <label>用户类型 <span class="req-tag">必选</span></label>
+          <div class="seg" id="applyUserTypeSeg">
+            <label class="checked" data-utype="enterprise">
+              <input type="radio" name="applyUType" value="enterprise" checked />
+              <span class="tick">✓</span>
+              <div class="t">企业用户</div>
+            </label>
+            <label data-utype="personal">
+              <input type="radio" name="applyUType" value="personal" />
+              <span class="tick">✓</span>
+              <div class="t">个人用户</div>
+            </label>
+          </div>
+        </div>
+        <div class="field">
           <label>真实姓名</label>
           <input type="text" id="realName" placeholder="请输入真实姓名" maxlength="20" />
         </div>
@@ -29,14 +44,39 @@
           <label>联系邮箱</label>
           <input type="text" id="contactEmail" placeholder="请输入邮箱地址" />
         </div>
-        <div class="field">
-          <label>营业执照 <span class="field-hint">（企业用户必传，个人用户可跳过）</span></label>
+        <!-- 企业用户：营业执照 -->
+        <div class="field" id="fieldLicense">
+          <label>营业执照 <span class="field-hint">（企业用户必传）</span></label>
           <div class="license-upload" id="licenseUpload" onclick="document.getElementById('licenseFile').click()">
             <div class="license-icon" id="licenseIcon">📄</div>
             <div class="license-text" id="licenseText">
               点击上传营业执照图片<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>
             </div>
             <input type="file" id="licenseFile" accept=".jpg,.jpeg,.png" style="display:none" onchange="handleLicenseFile(event)" />
+          </div>
+        </div>
+
+        <!-- 个人用户：身份证正反面 -->
+        <div id="fieldIdCard" style="display:none">
+          <div class="field">
+            <label>身份证正面 <span class="field-hint">（个人用户必传）</span></label>
+            <div class="license-upload" id="idFrontUpload" onclick="document.getElementById('idFrontFile').click()">
+              <div class="license-icon" id="idFrontIcon">🪪</div>
+              <div class="license-text" id="idFrontText">
+                点击上传身份证人像面<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>
+              </div>
+              <input type="file" id="idFrontFile" accept=".jpg,.jpeg,.png" style="display:none" onchange="handleIdFrontFile(event)" />
+            </div>
+          </div>
+          <div class="field">
+            <label>身份证反面 <span class="field-hint">（个人用户必传）</span></label>
+            <div class="license-upload" id="idBackUpload" onclick="document.getElementById('idBackFile').click()">
+              <div class="license-icon" id="idBackIcon">🪪</div>
+              <div class="license-text" id="idBackText">
+                点击上传身份证国徽面<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>
+              </div>
+              <input type="file" id="idBackFile" accept=".jpg,.jpeg,.png" style="display:none" onchange="handleIdBackFile(event)" />
+            </div>
           </div>
         </div>
 
@@ -175,6 +215,9 @@
       <div style="font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.7">
         佣金随时可申请结算，填写银行卡号后由平台财务人工审核批量转账。
       </div>
+      <div class="wd-settle-note">
+        📅 <b>每月结算时间：</b>每月 <b>25 日</b> 为结算日，申请将在 <b>次月 5 日前</b> 完成审核并打款（遇节假日顺延）。
+      </div>
       <div class="wd-limit-bar" id="wdLimitBar"></div>
       <div class="apply-form">
         <div class="field">
@@ -237,6 +280,7 @@
     var DB = App.DB;
     var s = App.getSession() || {};
     var currentTeamTab = "direct";
+    var applyUserType = "enterprise";
     var teamPageIndex = 1;
     var TEAM_PAGE_SIZE = 10;
     var wdPageIndex = 1;
@@ -280,6 +324,22 @@
     })();
 
     /* ========== 申请表单（保持不变） ========== */
+
+    /* 用户类型切换：企业显示营业执照，个人显示身份证正反面 */
+    (function initApplyUserType() {
+      var seg = document.getElementById("applyUserTypeSeg");
+      if (!seg) return;
+      seg.addEventListener("change", function (e) {
+        if (e.target.name !== "applyUType") return;
+        applyUserType = e.target.value;
+        document.querySelectorAll("#applyUserTypeSeg label").forEach(function (l) {
+          l.classList.toggle("checked", l.dataset.utype === applyUserType);
+        });
+        document.getElementById("fieldLicense").style.display = applyUserType === "enterprise" ? "" : "none";
+        document.getElementById("fieldIdCard").style.display = applyUserType === "personal" ? "" : "none";
+      });
+    })();
+
     function showApplyForm() {
       document.getElementById("applyPanel").style.display = "";
       document.getElementById("reviewPanel").style.display = "none";
@@ -297,8 +357,26 @@
       if (!contactEmail) { App.toast("请输入联系邮箱"); return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { App.toast("请输入正确的邮箱地址"); return; }
       if (!agreeChecked) { App.toast("请先勾选同意《代理商合作协议》"); return; }
+
+      // 按用户类型校验资质材料
+      if (applyUserType === "enterprise") {
+        if (!document.getElementById("licenseUpload").classList.contains("has-file")) {
+          App.toast("请上传营业执照图片"); return;
+        }
+      } else {
+        if (!document.getElementById("idFrontUpload").classList.contains("has-file")) {
+          App.toast("请上传身份证正面图片"); return;
+        }
+        if (!document.getElementById("idBackUpload").classList.contains("has-file")) {
+          App.toast("请上传身份证反面图片"); return;
+        }
+      }
+
       s.agentStatus = "pending";
-      s.agentApplyData = { realName: realName, contactPhone: contactPhone, contactEmail: contactEmail };
+      s.agentApplyData = {
+        realName: realName, contactPhone: contactPhone, contactEmail: contactEmail,
+        userType: applyUserType
+      };
       DB.setSession(s);
       document.getElementById("applyPanel").style.display = "none";
       document.getElementById("reviewPanel").style.display = "";
@@ -317,6 +395,28 @@
       document.getElementById("licenseText").innerHTML =
         '<b style="color:var(--success)">' + App.escapeHtml(file.name) + '</b><br><span style="color:var(--text-2)">点击重新选择</span>';
       App.toast("营业执照图片已上传（原型演示）");
+    }
+
+    function handleIdFrontFile(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().match(/\.(jpg|jpeg|png)$/)) { App.toast("仅支持 JPG / PNG 格式图片"); return; }
+      document.getElementById("idFrontUpload").classList.add("has-file");
+      document.getElementById("idFrontIcon").textContent = "✅";
+      document.getElementById("idFrontText").innerHTML =
+        '<b style="color:var(--success)">' + App.escapeHtml(file.name) + '</b><br><span style="color:var(--text-2)">点击重新选择</span>';
+      App.toast("身份证正面已上传（原型演示）");
+    }
+
+    function handleIdBackFile(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().match(/\.(jpg|jpeg|png)$/)) { App.toast("仅支持 JPG / PNG 格式图片"); return; }
+      document.getElementById("idBackUpload").classList.add("has-file");
+      document.getElementById("idBackIcon").textContent = "✅";
+      document.getElementById("idBackText").innerHTML =
+        '<b style="color:var(--success)">' + App.escapeHtml(file.name) + '</b><br><span style="color:var(--text-2)">点击重新选择</span>';
+      App.toast("身份证反面已上传（原型演示）");
     }
 
     function doReviewResult(phone) {
@@ -378,11 +478,35 @@
       document.getElementById("contactPhone").value = saved.contactPhone || "";
       document.getElementById("contactEmail").value = saved.contactEmail || "";
       document.getElementById("agreeCheck").checked = true;
+      // 重置用户类型选择为企业（默认）
+      applyUserType = saved.userType === "personal" ? "personal" : "enterprise";
+      var utSeg = document.getElementById("applyUserTypeSeg");
+      if (utSeg) {
+        utSeg.querySelectorAll("label").forEach(function (l) {
+          l.classList.toggle("checked", l.dataset.utype === applyUserType);
+          var radio = l.querySelector("input");
+          if (radio) radio.checked = (l.dataset.utype === applyUserType);
+        });
+      }
+      document.getElementById("fieldLicense").style.display = applyUserType === "enterprise" ? "" : "none";
+      document.getElementById("fieldIdCard").style.display = applyUserType === "personal" ? "" : "none";
+      // 重置营业执照上传
       var uploadEl = document.getElementById("licenseUpload");
       uploadEl.classList.remove("has-file");
       document.getElementById("licenseIcon").textContent = "📄";
       document.getElementById("licenseText").innerHTML =
         '点击上传营业执照图片<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>';
+      // 重置身份证正反面上传
+      ["idFront", "idBack"].forEach(function (k) {
+        var el = document.getElementById(k + "Upload");
+        if (el) el.classList.remove("has-file");
+        var icon = document.getElementById(k + "Icon");
+        if (icon) icon.textContent = "🪪";
+        var txt = document.getElementById(k + "Text");
+        if (txt) txt.innerHTML = (k === "idFront"
+          ? '点击上传身份证人像面<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>'
+          : '点击上传身份证国徽面<br><b>支持 JPG / PNG 格式，大小不超过 5MB</b>');
+      });
       showApplyForm();
       App.toast("已恢复驳回前填写的内容，修改后可重新提交");
     }

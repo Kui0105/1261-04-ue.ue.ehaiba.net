@@ -82,6 +82,11 @@
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
+          <span class="stat-label">折扣</span>
+          <span class="stat-val" id="sumDiscount">9.9折</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
           <span class="stat-label">号码数量</span>
           <span class="stat-val" id="sumPhoneCount">0</span>
         </div>
@@ -409,6 +414,7 @@
       document.getElementById("sumTaxType").textContent = t.label.replace(/\(.+\)/, "").trim();
       document.getElementById("sumUnitPrice").textContent = App.fmtMoney(unit);
       document.getElementById("sumPhoneCount").textContent = count;
+      document.getElementById("sumDiscount").textContent = DB.DISCOUNT.label;
 
       // 提交按钮置灰规则：税费必选 + 模板必选 + 号码必填
       var canSubmit = !!state.tax && !!state.tplId && count > 0;
@@ -434,6 +440,9 @@
       var tp = DB.SMS_TEMPLATES.find(function (x) { return x.id === state.tplId; });
       var unit = t.rate ? tp.price * (1 + t.rate) : tp.price;
       var total = unit * state.phones.length;
+      var disc = DB.DISCOUNT;
+      var payable = Math.round(total * disc.rate * 100) / 100;
+      var saveAmt = Math.round((total - payable) * 100) / 100;
       var sess = App.getSession();
 
       // 原型：不做余额/额度拦截，直接进入支付流程（演示账户余额充足即可）
@@ -447,8 +456,10 @@
           '<tr><td style="width:36%">短信模板</td><td><b>' + App.escapeHtml(tp.name) + '</b></td></tr>' +
           '<tr><td>税费类型</td><td>' + (state.tax === "taxed" ? "含税（6% 专票）" : "未税（普票）") + '</td></tr>' +
           '<tr><td>单价金额</td><td class="amount">' + App.fmtMoney(unit) + '</td></tr>' +
+          '<tr><td>折扣</td><td>' + disc.label + '</td></tr>' +
+          '<tr><td>优惠金额</td><td class="amount">-' + App.fmtMoney(saveAmt) + '</td></tr>' +
           '<tr><td>号码数量</td><td><b>' + state.phones.length + ' 个</b></td></tr>' +
-          '<tr style="background:#f0f4ff"><td class="amount" colspan="2">合计总额：' + App.fmtMoney(total) + '</td></tr>' +
+          '<tr style="background:#f0f4ff"><td class="amount" colspan="2">实付总额（' + disc.label + '）：' + App.fmtMoney(payable) + '</td></tr>' +
         '</tbody></table>' +
 
         // 支付方式（企业=余额支付，个人=微信支付）
@@ -464,8 +475,8 @@
           ? '<div class="balance-cards">' +
               '<div class="bal-card"><div class="bal-n">' + App.fmtMoney(sess.balance) + '</div><div class="bal-l">账户余额</div></div>' +
               '<div class="bal-card"><div class="bal-n">\u00A52000.00</div><div class="bal-l">预授信额度</div></div>' +
-              '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(total) + '</div><div class="bal-l">本次消费金额</div></div>' +
-              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(-total) + '</div><div class="bal-l">消费后余额</div></div>' +
+              '<div class="bal-card red"><div class="bal-n">' + App.fmtMoney(payable) + '</div><div class="bal-l">本次消费金额</div></div>' +
+              '<div class="bal-card green"><div class="bal-n">' + App.fmtMoney(-payable) + '</div><div class="bal-l">消费后余额</div></div>' +
             '</div>'
           : ''
         );
@@ -531,12 +542,13 @@
       if (!DB.verifyCode(sess.phone || "", code)) {
         App.toast("验证码错误，请重试"); return;
       }
-      // 预授信额度校验（固定 2000）
+      // 预授信额度校验（固定 2000，按折扣后应付金额判断）
       var t = DB.TAX_TYPES[state.tax];
       var tp = DB.SMS_TEMPLATES.find(function (x) { return x.id === state.tplId; });
       var unit = t.rate ? tp.price * (1 + t.rate) : tp.price;
-      var total = Math.round(unit * state.phones.length * 100) / 100;
-      if (total > 2000) {
+      var chargeAmt = Math.round(unit * state.phones.length * 100) / 100;
+      var payable = Math.round(chargeAmt * DB.DISCOUNT.rate * 100) / 100;
+      if (payable > 2000) {
         closeVerify();
         App.toast("余额/预授信额度不足无法支付");
         return;

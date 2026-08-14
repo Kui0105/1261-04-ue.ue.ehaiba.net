@@ -319,8 +319,12 @@ window.MockDB = (function () {
     return list;
   })();
 
+  // 平台统一折扣（用于话费充值 / 短信群发的底栏统计与确认订单弹窗展示）
+  const DISCOUNT = { rate: 0.99, label: "9.9折" };
+
   return {
     CARRIERS, FACE_VALUES, TAX_TYPES, PHONE_POOL,
+    DISCOUNT,
     getSession, setSession,
     ORDERS, FLOWS, COMMISSIONS, WITHDRAWS, CONSUMPTION_DETAILS,
     CORP_ACCOUNT, RECHARGE_AMOUNTS,

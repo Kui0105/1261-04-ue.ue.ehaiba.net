@@ -157,6 +157,7 @@ window.App = (function () {
     { key: "home", label: "首页", href: "index.html", icon: "🏠" },
     { key: "recharge", label: "话费充值", href: "recharge.html", icon: "📱" },
     { key: "sms", label: "短信群发", href: "sms.html", icon: "💬" },
+    { key: "voiceback", label: "语音回收", href: "javascript:void(0)", icon: "📞", todo: true },
     { key: "orders", label: "订单管理", href: "orders.html", icon: "📋" },
     { key: "account", label: "账户中心", href: "account.html", icon: "💰" },
     { key: "agent", label: "代理商中心", href: "agent.html", icon: "🤝" }
@@ -165,7 +166,9 @@ window.App = (function () {
   function renderTopbar(activeKey) {
     const s = getSession();
     const navHtml = NAV_ITEMS.map(it =>
-      `<a href="${it.href}" class="${it.key === activeKey ? "active" : ""}">${it.label}</a>`
+      it.todo
+        ? `<a href="javascript:void(0)" class="nav-todo" onclick="App.toast('语音回收功能待开放')">${it.label}</a>`
+        : `<a href="${it.href}" class="${it.key === activeKey ? "active" : ""}">${it.label}</a>`
     ).join("");
 
     const right = s
@@ -177,7 +180,9 @@ window.App = (function () {
     // 移动端子导航图标+文字条（位于顶栏下方）
     const iconNav = '<nav class="icon-nav">' +
       NAV_ITEMS.map(it =>
-        `<a href="${it.href}" class="icon-nav-item ${it.key === activeKey ? "active" : ""}"><span class="icon-nav-icon">${it.icon}</span><span class="icon-nav-label">${it.label}</span></a>`
+        it.todo
+          ? `<a href="javascript:void(0)" class="icon-nav-item nav-todo" onclick="App.toast('语音回收功能待开放')"><span class="icon-nav-icon">${it.icon}</span><span class="icon-nav-label">${it.label}</span></a>`
+          : `<a href="${it.href}" class="icon-nav-item ${it.key === activeKey ? "active" : ""}"><span class="icon-nav-icon">${it.icon}</span><span class="icon-nav-label">${it.label}</span></a>`
       ).join("") +
       '</nav>';
 
