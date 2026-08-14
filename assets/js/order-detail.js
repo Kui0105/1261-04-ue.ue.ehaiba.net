@@ -124,6 +124,9 @@ function renderRechargeDetail(o) {
   var unitRate = o.tax === "taxed" ? 1.06 : 1;
   var unit = o.face * unitRate;
   var totalAmt = unit * o.count;
+  var disc = DB.DISCOUNT;
+  var payable = Math.round(totalAmt * disc.rate * 100) / 100;
+  var saveAmt = Math.round((totalAmt - payable) * 100) / 100;
 
   var normDetails = getRechargeDetailsNorm(o);
   var succ = normDetails.filter(function (d) { return d.status === "success"; }).length;
@@ -141,6 +144,9 @@ function renderRechargeDetail(o) {
       '<div class="info-item"><div class="info-label">税费类型</div><div class="info-value">' + getTaxLabel(o.tax) + '</div></div>' +
       '<div class="info-item"><div class="info-label">单价</div><div class="info-value amount">' + App.fmtMoney(unit) + '</div></div>' +
       '<div class="info-item"><div class="info-label">总额</div><div class="info-value amount">' + App.fmtMoney(totalAmt) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">优惠折扣</div><div class="info-value">' + disc.label + '</div></div>' +
+      '<div class="info-item"><div class="info-label">优惠金额</div><div class="info-value amount">-' + App.fmtMoney(saveAmt) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">实付总额</div><div class="info-value amount">' + App.fmtMoney(payable) + '</div></div>' +
       '<div class="info-item"><div class="info-label">状态</div><div class="info-value">' + orderStatusBadge(o.status) + '</div></div>' +
       '<div class="info-item"><div class="info-label">提交时间</div><div class="info-value">' + o.createdAt + '</div></div>' +
     '</div>' +
@@ -183,6 +189,9 @@ function renderSmsDetail(o, norm) {
   var fail = norm.filter(function (d) { return d.status === "fail"; }).length;
   var proc = norm.filter(function (d) { return d.status === "process"; }).length;
   var refundTotal = Math.round(o.unitPrice * fail * 100) / 100;
+  var disc = DB.DISCOUNT;
+  var payable = Math.round(o.total * disc.rate * 100) / 100;
+  var saveAmt = Math.round((o.total - payable) * 100) / 100;
 
   var html =
     '<div class="detail-section-title">基本信息</div>' +
@@ -193,6 +202,9 @@ function renderSmsDetail(o, norm) {
       '<div class="info-item"><div class="info-label">税费类型</div><div class="info-value">' + getTaxLabel(o.tax) + '</div></div>' +
       '<div class="info-item"><div class="info-label">单价</div><div class="info-value amount">' + App.fmtMoney(o.unitPrice) + '/条</div></div>' +
       '<div class="info-item"><div class="info-label">总额</div><div class="info-value amount">' + App.fmtMoney(o.total) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">优惠折扣</div><div class="info-value">' + disc.label + '</div></div>' +
+      '<div class="info-item"><div class="info-label">优惠金额</div><div class="info-value amount">-' + App.fmtMoney(saveAmt) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">实付总额</div><div class="info-value amount">' + App.fmtMoney(payable) + '</div></div>' +
       '<div class="info-item"><div class="info-label">状态</div><div class="info-value">' + orderStatusBadge(o.status) + '</div></div>' +
       '<div class="info-item"><div class="info-label">提交时间</div><div class="info-value">' + o.createdAt + '</div></div>' +
     '</div>' +
