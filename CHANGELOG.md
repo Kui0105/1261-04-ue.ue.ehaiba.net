@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-08-14（迭代 77）修正提现相关弹窗左右留白归属
+
+- **问题**：迭代 73 把「提现弹窗表单左右顶边贴边去留白」的 CSS 误加到了 **佣金提现弹窗 `#withdrawMask`**，而实际需求是作用于 **提现记录弹窗 `#wdRecordMask`**。导致佣金提现弹窗内容被压到左右贴边（无留白），提现记录表格却保留了 24px 左右内边距。
+- **修复**：
+  - 移除 `#withdrawMask .modal > *:not(h3){padding-left:0;padding-right:0}` / `#withdrawMask .apply-form{margin-top:0}` / `#withdrawMask .wd-limit-bar{margin-bottom:0}` 三条贴边规则，佣金提现弹窗恢复全局 `.modal > *` 默认 24px 左右留白。
+  - 把「左右贴边」规则迁移到 `#wdRecordMask .modal > div[style*="overflow"]`，在原有 `padding-top:0` 基础上新增 `padding-left:0; padding-right:0`，使提现记录表格紧贴标题与左右边、无顶部/左右留白。
+- 校验：agent.css 已改；确认无 `#withdrawMask .modal > *` 残留贴边规则。
+
+---
+
 ## 2026-08-13（迭代 76）编辑弹窗验证码输入框与按钮同行
 
 - **需求**：修改密码弹窗内「短信验证码」输入框需与「获取验证码」按钮处于**同一行**。

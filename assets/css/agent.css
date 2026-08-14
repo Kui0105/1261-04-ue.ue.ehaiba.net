@@ -352,9 +352,11 @@
   line-height: 1.6; white-space: normal; word-break: break-all;
 }
 
-/* 提现记录弹窗：表格紧贴标题，无顶部留白 */
+/* 提现记录弹窗：表格紧贴标题与左右边，无顶部/左右留白 */
 #wdRecordMask .modal > div[style*="overflow"] {
   padding-top: 0 !important;
+  padding-left: 0;
+  padding-right: 0;
   margin-top: -4px;
 }
 /* 打款凭证列给足够宽度避免按钮文字竖排 */
@@ -367,10 +369,4 @@
   min-width: 120px;
 }
 
-/* 提现弹窗：表单左右顶边贴边，去除留白（标题栏保留内边距） */
-#withdrawMask .modal > *:not(h3) {
-  padding-left: 0;
-  padding-right: 0;
-}
-#withdrawMask .apply-form { margin-top: 0; }
-#withdrawMask .wd-limit-bar { margin-bottom: 0; }
+/* 佣金提现弹窗（#withdrawMask）保留默认左右留白，不再贴边 */
