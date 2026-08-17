@@ -319,8 +319,38 @@ window.MockDB = (function () {
     return list;
   })();
 
-  // 平台统一折扣（用于话费充值 / 短信群发的底栏统计与确认订单弹窗展示）
-  const DISCOUNT = { rate: 0.99, label: "9.9折" };
+  // 平台优惠折扣配置（每种类型只能设置一项）
+  // 日期折扣：月份内的时间段（如 1–10 日），开始最早 1 日，结束最晚 30 日
+  // 每日折扣：24 小时时间段，可跨日（如 20:00 – 次日 06:00）
+  const DISCOUNT = (function () {
+    var cfg = {
+      // 日期折扣（null = 未设置）
+      dateDiscount: null,   // { startDay:1, endDay:10, rate:0.95, label:"9.5折" }
+      // 时段折扣（null = 未设置）
+      timeDiscount: null    // { startTime:"20:00", endTime:"06:00", rate:0.98, label:"9.8折" }
+    };
+
+    function fmtLabel(rate) {
+      return (rate * 10).toFixed(1) + "折";
+    }
+
+    // 向后兼容：计算当前生效的最低折扣率
+    function getEffectiveRate() {
+      var rates = [0.99]; // 默认
+      if (cfg.dateDiscount) rates.push(cfg.dateDiscount.rate);
+      if (cfg.timeDiscount) rates.push(cfg.timeDiscount.rate);
+      return Math.min.apply(null, rates);
+    }
+
+    return Object.defineProperties(cfg, {
+      rate:       { get: getEffectiveRate, enumerable: true },
+      label:      { get: function () { return fmtLabel(getEffectiveRate()); }, enumerable: true },
+      setDateDiscount: { value: function (d) { cfg.dateDiscount = d ? { startDay:d.startDay, endDay:d.endDay, rate:d.rate, label:fmtLabel(d.rate) } : null; } },
+      setTimeDiscount: { value: function (t) { cfg.timeDiscount = t ? { startTime:t.startTime, endTime:t.endTime, rate:t.rate, label:fmtLabel(t.rate) } : null; } },
+      clearDateDiscount:  { value: function () { cfg.dateDiscount = null; } },
+      clearTimeDiscount:  { value: function () { cfg.timeDiscount = null; } }
+    });
+  })();
 
   return {
     CARRIERS, FACE_VALUES, TAX_TYPES, PHONE_POOL,

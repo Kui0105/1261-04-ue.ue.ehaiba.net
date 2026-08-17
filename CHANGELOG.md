@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-08-17（迭代 81）优惠折扣配置：日期折扣 + 时段折扣各限一项
+
+- **数据层（assets/js/data.js `DISCOUNT`）**：从简单 `{rate,label}` 硬编码重构为可配置对象，支持两种折扣类型：
+  - **日期折扣** `dateDiscount`：月份内时间段（开始日 1–30、结束日 1–30），无月份选择，只能设一项。
+  - **时段折扣** `timeDiscount`：24 小时时间段（`HH:MM` 格式，可跨日如 20:00–06:00），只能设一项。
+  - 向后兼容：`DB.DISCOUNT.rate` / `.label` 为 getter，自动取所有已启用折扣中的最低率；未设置时默认 0.99 / 9.9折。提供 `setDateDiscount()` / `setTimeDiscount()` / `clearDateDiscount()` / `clearTimeDiscount()` 方法。
+- **代理商中心（agent.html）**：操作按钮行新增「🏷️ 优惠折扣」按钮 → 打开配置弹窗 `#discountConfigMask`：
+  - 弹窗分两个 `fieldset`（日期折扣 / 每日折扣），各带「启用」checkbox 开关。
+  - 启用后展开表单：日期折扣 = 开始日 + 结束日 + 折扣率；时段折扣 = 开始时间 + 结束时间 + 折扣率。
+  - 底部实时预览当前生效折扣（取最低）；保存时校验范围（日期 1–30 且起≤止、时间必填、折率 0.1–1）。
+- **样式（assets/css/agent.css）**：新增 `.disc-fieldset` / `.disc-legend` / `.disc-toggle` / `.disc-preview` 样式。
+
+---
+
 ## 2026-08-17（迭代 80）顶栏语音回收文字颜色与其它导航一致
 
 - **顶部导航（assets/css/style.css `.nav-todo`）**：原 `.nav a.nav-todo` / `.icon-nav-item.nav-todo` 用 `opacity:.5/.45` 淡化，导致「语音回收」文字颜色比其它导航更浅。改为 `opacity:1` 且 `color:var(--text-2)`（与其它导航项一致），hover 仍高亮为 `var(--primary)`；点击提示「语音回收功能待开放」行为不变。

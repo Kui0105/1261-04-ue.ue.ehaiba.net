@@ -114,6 +114,7 @@
         <button class="btn btn-outline btn-block" onclick="openPromoModal()">🔗 推广链接</button>
         <button class="btn btn-outline btn-block" onclick="openWithdrawModal()">💰 佣金提现</button>
         <button class="btn btn-outline btn-block" onclick="openWdRecordModal()">📋 提现记录</button>
+        <button class="btn btn-outline btn-block" onclick="openDiscountConfigModal()">🏷️ 优惠折扣</button>
       </div>
 
       <!-- 佣金明细（单一列表，合并消费与佣金信息，避免两个相似表格造成混淆） -->
@@ -273,6 +274,74 @@
     <div class="modal" style="max-width:360px;text-align:center">
       <h3>打款凭证<button class="x" onclick="closeVoucher()">×</button></h3>
       <div id="voucherBody" style="padding:8px 0 24px;display:flex;justify-content:center"></div>
+    </div>
+  </div>
+
+  <!-- ========== 优惠折扣配置弹窗 ========== -->
+  <div class="modal-mask" id="discountConfigMask">
+    <div class="modal" style="max-width:560px">
+      <h3>优惠折扣<button class="x" onclick="closeDiscountConfigModal()">×</button></h3>
+
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.7">
+        日期折扣设定为月份内的时间段如：1–10 日，开始日期最早为 1 日，结束日期为 30 日，无月份选择；<br>
+        每日折扣则 24 小时时间段选择，可跨日选择如晚上 20:00 – 早上 6:00。<br>
+        <b>每种折扣类型只能设置一项。</b>
+      </div>
+
+      <div class="apply-form">
+
+        <!-- ====== 日期折扣 ====== -->
+        <fieldset class="disc-fieldset" id="discDateFieldset">
+          <legend class="disc-legend">日期折扣</legend>
+          <label class="disc-toggle"><input type="checkbox" id="discDateEnabled" onchange="toggleDiscDate()" /> 启用日期折扣</label>
+
+          <div id="discDateBody" style="display:none">
+            <div class="field">
+              <label>开始日期（日）<span class="field-hint">1–30</span></label>
+              <input type="number" id="discDateStart" min="1" max="30" placeholder="如：1" />
+            </div>
+            <div class="field">
+              <label>结束日期（日）<span class="field-hint">1–30</span></label>
+              <input type="number" id="discDateEnd" min="1" max="30" placeholder="如：10" />
+            </div>
+            <div class="field">
+              <label>折扣率<span class="field-hint">如 9.5 折填 0.95</span></label>
+              <input type="number" id="discDateRate" min="0.1" max="1" step="0.01" placeholder="如：0.95" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- ====== 每日时段折扣 ====== -->
+        <fieldset class="disc-fieldset" id="discTimeFieldset">
+          <legend class="disc-legend">每日折扣</legend>
+          <label class="disc-toggle"><input type="checkbox" id="discTimeEnabled" onchange="toggleDiscTime()" /> 启用每日折扣</label>
+
+          <div id="discTimeBody" style="display:none">
+            <div class="field">
+              <label>开始时间<span class="field-hint">HH:MM，可跨日</span></label>
+              <input type="time" id="discTimeStart" step="60" />
+            </div>
+            <div class="field">
+              <label>结束时间<span class="field-hint">HH:MM，可跨日</span></label>
+              <input type="time" id="discTimeEnd" step="60" />
+            </div>
+            <div class="field">
+              <label>折扣率<span class="field-hint">如 9.8 折填 0.98</span></label>
+              <input type="number" id="discTimeRate" min="0.1" max="1" step="0.01" placeholder="如：0.98" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- 当前生效折扣预览 -->
+        <div class="disc-preview" id="discPreview">
+          当前生效：<b id="discPreviewLabel">9.9折</b><span class="disc-preview-hint">（默认折扣）</span>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:18px">
+          <button class="btn btn-primary btn-block" style="flex:1" onclick="saveDiscountConfig()">保存设置</button>
+          <button class="btn btn-outline btn-block" style="flex:1" onclick="closeDiscountConfigModal()">取消</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -683,6 +752,111 @@
       document.getElementById("voucherMask").classList.add("show");
     }
     function closeVoucher() { document.getElementById("voucherMask").classList.remove("show"); }
+
+    /* ========== 优惠折扣配置 ========== */
+    function openDiscountConfigModal() {
+      // 回填已有配置
+      var dd = DB.DISCOUNT.dateDiscount;
+      var td = DB.DISCOUNT.timeDiscount;
+
+      var de = document.getElementById("discDateEnabled");
+      var te = document.getElementById("discTimeEnabled");
+      de.checked = !!dd;
+      te.checked = !!td;
+
+      toggleDiscDate();
+      toggleDiscTime();
+
+      if (dd) {
+        document.getElementById("discDateStart").value = dd.startDay;
+        document.getElementById("discDateEnd").value = dd.endDay;
+        document.getElementById("discDateRate").value = dd.rate;
+      }
+      if (td) {
+        document.getElementById("discTimeStart").value = td.startTime;
+        document.getElementById("discTimeEnd").value = td.endTime;
+        document.getElementById("discTimeRate").value = td.rate;
+      }
+
+      refreshDiscPreview();
+      document.getElementById("discountConfigMask").classList.add("show");
+    }
+
+    function closeDiscountConfigModal() {
+      document.getElementById("discountConfigMask").classList.remove("show");
+    }
+
+    function toggleDiscDate() {
+      document.getElementById("discDateBody").style.display =
+        document.getElementById("discDateEnabled").checked ? "" : "none";
+      refreshDiscPreview();
+    }
+
+    function toggleDiscTime() {
+      document.getElementById("discTimeBody").style.display =
+        document.getElementById("discTimeEnabled").checked ? "" : "none";
+      refreshDiscPreview();
+    }
+
+    function refreshDiscPreview() {
+      var labelEl = document.getElementById("discPreviewLabel");
+      var hintEl = document.querySelector(".disc-preview-hint") || null;
+
+      // 收集当前表单中的有效折扣（未保存前的预览）
+      var rates = [0.99]; // 默认
+      var labels = ["默认折扣"];
+
+      var de = document.getElementById("discDateEnabled");
+      if (de && de.checked) {
+        var r = parseFloat(document.getElementById("discDateRate").value);
+        if (r && r >= 0.1 && r <= 1) { rates.push(r); labels.push("日期折扣 " + (r * 10).toFixed(1) + "折"); }
+      }
+      var te = document.getElementById("discTimeEnabled");
+      if (te && te.checked) {
+        var r2 = parseFloat(document.getElementById("discTimeRate").value);
+        if (r2 && r2 >= 0.1 && r2 <= 1) { rates.push(r2); labels.push("时段折扣 " + (r2 * 10).toFixed(1) + "折"); }
+      }
+
+      var best = Math.min.apply(null, rates);
+      labelEl.textContent = (best * 10).toFixed(1) + "折";
+      // 更新 hint
+      var hint = labels.length > 1 ? "（取最低：" + labels.slice(1).join(" + ") + "）" : "（默认折扣）";
+      if (hintEl) hintEl.textContent = hint;
+    }
+
+    function saveDiscountConfig() {
+      // ---- 日期折扣 ----
+      var de = document.getElementById("discDateEnabled");
+      if (de.checked) {
+        var sDay = parseInt(document.getElementById("discDateStart").value, 10);
+        var eDay = parseInt(document.getElementById("discDateEnd").value, 10);
+        var dRate = parseFloat(document.getElementById("discDateRate").value);
+        if (!sDay || sDay < 1 || sDay > 30) { App.toast("请输入有效的开始日期（1–30）"); return; }
+        if (!eDay || eDay < 1 || eDay > 30) { App.toast("请输入有效的结束日期（1–30）"); return; }
+        if (sDay > eDay) { App.toast("开始日期不能大于结束日期"); return; }
+        if (!dRate || dRate < 0.1 || dRate > 1) { App.toast("请输入有效的日期折扣率（0.1–1）"); return; }
+        DB.DISCOUNT.setDateDiscount({ startDay: sDay, endDay: eDay, rate: dRate });
+      } else {
+        DB.DISCOUNT.clearDateDiscount();
+      }
+
+      // ---- 时段折扣 ----
+      var te = document.getElementById("discTimeEnabled");
+      if (te.checked) {
+        var st = document.getElementById("discTimeStart").value;
+        var et = document.getElementById("discTimeEnd").value;
+        var tRate = parseFloat(document.getElementById("discTimeRate").value);
+        if (!st) { App.toast("请选择开始时间"); return; }
+        if (!et) { App.toast("请选择结束时间"); return; }
+        if (!tRate || tRate < 0.1 || tRate > 1) { App.toast("请输入有效的时段折扣率（0.1–1）"); return; }
+        DB.DISCOUNT.setTimeDiscount({ startTime: st, endTime: et, rate: tRate });
+      } else {
+        DB.DISCOUNT.clearTimeDiscount();
+      }
+
+      closeDiscountConfigModal();
+      App.toast("折扣设置已保存，当前生效：" + DB.DISCOUNT.label);
+    }
 
     function buildVoucherSvg(w) {
       var amount = App.fmtMoney(w.amount);
