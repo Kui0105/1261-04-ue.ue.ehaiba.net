@@ -634,11 +634,11 @@ img { max-width: 100%; }
 .icon-nav-item:hover { background: #f1f5f9; color: var(--primary); }
 .icon-nav-item.active { background: var(--primary-light); color: var(--primary); }
 
-/* 待开放入口（如语音回收）：弱化显示，点击提示功能待开放 */
-.nav a.nav-todo { opacity: .5; cursor: pointer; }
-.nav a.nav-todo:hover { opacity: .7; background: transparent; color: var(--text-2); }
-.icon-nav-item.nav-todo { opacity: .45; cursor: pointer; }
-.icon-nav-item.nav-todo:hover { opacity: .7; background: transparent; color: var(--text-2); }
+/* 待开放入口（如语音回收）：颜色与其它导航一致，点击提示功能待开放 */
+.nav a.nav-todo { color: var(--text-2); opacity: 1; cursor: pointer; }
+.nav a.nav-todo:hover { color: var(--primary); background: var(--primary-light); }
+.icon-nav-item.nav-todo { color: var(--text-2); opacity: 1; cursor: pointer; }
+.icon-nav-item.nav-todo:hover { color: var(--primary); background: var(--primary-light); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 880px) {
