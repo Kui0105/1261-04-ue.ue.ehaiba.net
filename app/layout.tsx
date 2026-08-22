@@ -5,10 +5,10 @@ import { SessionProvider } from "@/lib/session";
 import { ToastProvider } from "@/components/ui/toast";
 
 const noto = Noto_Sans_SC({
-  subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
   variable: "--font-noto",
   display: "swap",
+  preload: false,
 });
 
 const geistMono = Geist_Mono({

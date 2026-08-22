@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import {
   Smartphone,
   MessageSquare,
@@ -53,10 +52,10 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { num: "99.6%", label: "充值成功率" },
-  { num: "3 秒", label: "平均到账" },
-  { num: "1200万+", label: "累计充值笔数" },
-  { num: "24 / 7", label: "专属客服" },
+  { num: "99.6", unit: "%", label: "充值成功率" },
+  { num: "3", unit: "秒", label: "平均到账" },
+  { num: "1200", unit: "万+", label: "累计充值笔数" },
+  { num: "24/7", unit: "", label: "专属客服" },
 ];
 
 export default function HomePage() {
@@ -109,23 +108,86 @@ export default function HomePage() {
 
           <div className="animate-fade-up d2 relative">
             <div className="relative mx-auto max-w-[460px]">
-              <div className="animate-float overflow-hidden rounded-[24px] border border-border bg-card shadow-[var(--shadow-pop)]">
-                <Image
-                  src="/images/hero-recharge.png"
-                  alt="话费充值平台示意"
-                  width={920}
-                  height={920}
-                  priority
-                  className="h-auto w-full"
-                />
+              {/* 背景光晕 */}
+              <div
+                aria-hidden
+                className="absolute -inset-6 -z-10 rounded-[40px] opacity-70 blur-2xl"
+                style={{
+                  background:
+                    "radial-gradient(60% 60% at 70% 30%, var(--color-primary-light), transparent 70%)",
+                }}
+              />
+              {/* 充值面板卡片 */}
+              <div className="animate-float rounded-[28px] border border-border bg-card p-6 shadow-[var(--shadow-pop)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-glow)]">
+                      <Smartphone size={22} />
+                    </span>
+                    <div>
+                      <p className="text-[15px] font-extrabold">话费充值</p>
+                      <p className="text-[12px] text-muted">三网直连 · 秒级到账</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-[var(--color-success-soft)] px-3 py-1 text-[12px] font-bold text-[var(--color-success)]">
+                    实时
+                  </span>
+                </div>
+
+                {/* 金额展示 */}
+                <div className="mt-6 rounded-2xl bg-[var(--color-primary-light)] p-5">
+                  <p className="text-[12px] font-semibold text-primary">本批充值金额</p>
+                  <p className="mt-1 flex items-baseline gap-1">
+                    <span className="text-[15px] font-bold text-primary">¥</span>
+                    <span className="tnum font-mono text-4xl font-black text-primary">5,000</span>
+                    <span className="ml-1 text-[13px] text-muted">/ 50 个号码</span>
+                  </p>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-card">
+                    <div className="h-full w-[86%] rounded-full bg-gradient-to-r from-primary to-[var(--color-accent)]" />
+                  </div>
+                  <p className="mt-2 flex items-center justify-between text-[12px] text-muted">
+                    <span>处理进度</span>
+                    <span className="tnum font-mono font-bold text-primary">43 / 50</span>
+                  </p>
+                </div>
+
+                {/* 面值选择 */}
+                <div className="mt-5 grid grid-cols-3 gap-2.5">
+                  {["50", "100", "200"].map((v, i) => (
+                    <div
+                      key={v}
+                      className={`rounded-xl border px-3 py-2.5 text-center transition-colors ${
+                        i === 1
+                          ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                          : "border-border bg-card text-fg"
+                      }`}
+                    >
+                      <span className="tnum font-mono text-[15px] font-black">{v}</span>
+                      <span className="ml-0.5 text-[11px]">元</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="absolute -left-4 bottom-8 flex items-center gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-[var(--shadow-pop)] backdrop-blur">
+
+              {/* 悬浮到账提示 */}
+              <div className="absolute -left-5 bottom-6 flex items-center gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-[var(--shadow-pop)] backdrop-blur">
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--color-success-soft)] text-[var(--color-success)]">
                   <CheckCircle2 size={20} />
                 </span>
                 <div>
                   <p className="text-[13px] font-bold">充值成功</p>
                   <p className="text-[12px] text-muted">50 个号码 · 已到账</p>
+                </div>
+              </div>
+
+              {/* 悬浮短信提示 */}
+              <div className="absolute -right-4 top-8 flex items-center gap-2.5 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-[var(--shadow-pop)] backdrop-blur">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--color-primary-light)] text-primary">
+                  <MessageSquare size={18} />
+                </span>
+                <div>
+                  <p className="text-[12.5px] font-bold">短信群发</p>
+                  <p className="text-[11.5px] text-muted">签名已报备</p>
                 </div>
               </div>
             </div>
@@ -176,7 +238,10 @@ export default function HomePage() {
         <div className="grid gap-px overflow-hidden rounded-3xl border border-border bg-border shadow-[var(--shadow-card)] sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((s) => (
             <div key={s.label} className="bg-card px-6 py-8 text-center transition-colors hover:bg-[var(--color-primary-light)]">
-              <p className="tnum text-3xl font-black text-primary">{s.num}</p>
+              <p className="text-3xl font-black text-primary">
+                <span className="tnum font-mono">{s.num}</span>
+                {s.unit && <span className="ml-0.5 font-sans">{s.unit}</span>}
+              </p>
               <p className="mt-1.5 text-[13.5px] text-muted">{s.label}</p>
             </div>
           ))}
