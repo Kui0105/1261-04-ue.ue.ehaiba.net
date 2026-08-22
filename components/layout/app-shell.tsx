@@ -19,7 +19,15 @@ import { EditPasswordModal } from "@/components/ui/edit-password-modal";
 
 type NavKey = "home" | "recharge" | "sms" | "voiceback" | "orders" | "account" | "agent" | "";
 
-const NAV_ITEMS = [
+type NavItem = {
+  key: NavKey;
+  label: string;
+  href: string;
+  Icon: typeof Home;
+  todo?: boolean;
+};
+
+const NAV_ITEMS: NavItem[] = [
   { key: "home", label: "首页", href: "/", Icon: Home },
   { key: "recharge", label: "话费充值", href: "/recharge", Icon: Smartphone },
   { key: "sms", label: "短信群发", href: "/sms", Icon: MessageSquare },
@@ -27,7 +35,7 @@ const NAV_ITEMS = [
   { key: "orders", label: "订单管理", href: "/orders", Icon: ClipboardList },
   { key: "account", label: "账户中心", href: "/account", Icon: Wallet },
   { key: "agent", label: "代理商中心", href: "/agent", Icon: Handshake },
-] as const;
+];
 
 export function AppShell({
   active = "",

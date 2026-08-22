@@ -88,16 +88,14 @@ function DetailInner() {
   const curPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
 
-  const carrierObj = order.carrierLabel
-    ? { label: order.carrierLabel }
-    : DB.CARRIERS.find((c) => c.key === order.carrier) ||
-      DB.CARRIERS[
-        (() => {
-          let h = 0;
-          for (let i = 0; i < order.id.length; i++) h = (h * 31 + order.id.charCodeAt(i)) % DB.CARRIERS.length;
-          return h;
-        })()
-      ];
+  const carrierObj =
+    DB.CARRIERS[
+      (() => {
+        let h = 0;
+        for (let i = 0; i < order.id.length; i++) h = (h * 31 + order.id.charCodeAt(i)) % DB.CARRIERS.length;
+        return h;
+      })()
+    ];
 
   const tpl = isSms ? DB.SMS_TEMPLATES.find((x) => x.name === order.template) : null;
 
